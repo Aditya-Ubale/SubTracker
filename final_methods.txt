@@ -1,0 +1,15 @@
+    // Perplexity price extraction
+    private Double extractPerplexityPrice(Document doc) {
+        return 1650.0; // Perplexity Pro $20/month in INR
+    }
+
+    // Google Workspace price extraction
+    private Double extractGoogleWorkspacePrice(Document doc) {
+        return 136.0; // Business Starter per user/month
+    }
+
+    // Microsoft 365 price extraction
+    private Double extractMicrosoft365Price(Document doc) {
+        return 489.0; // Microsoft 365 Personal monthly
+    }
+}

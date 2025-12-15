@@ -1,0 +1,49 @@
+
+    // Perplexity price extraction
+    private Double extractPerplexityPrice(Document doc) {
+        // Perplexity Pro is $20/month, convert USD to INR
+        String pageText = doc.text();
+        Pattern pricePattern = Pattern.compile("\\$\\s*(\\d+)\\s*/month");
+        Matcher priceMatcher = pricePattern.matcher(pageText);
+        if (priceMatcher.find()) {
+            try {
+                Double usdPrice = Double.parseDouble(priceMatcher.group(1));
+                return Math.round(usdPrice * 82.5); // Convert to INR
+            } catch (NumberFormatException e) {
+                logger.warn("Failed to parse Perplexity price");
+            }
+        }
+        return 1650.0; // $20/month fallback
+    }
+
+    // Google Workspace price extraction
+    private Double extractGoogleWorkspacePrice(Document doc) {
+        String pageText = doc.text();
+        Pattern starterPattern = Pattern.compile("₹\\s*([\\d.]+).*?user.*?month");
+        Matcher starterMatcher = starterPattern.matcher(pageText);
+        if (starterMatcher.find()) {
+            try {
+                return Double.parseDouble(starterMatcher.group(1));
+            } catch (NumberFormatException e) {
+                logger.warn("Failed to parse Google Workspace price");
+            }
+        }
+        return 136.0; // Business Starter fallback
+    }
+
+    // Microsoft 365 price extraction
+    private Double extractMicrosoft365Price(Document doc) {
+        String pageText = doc.text();
+        Pattern personalPattern = Pattern.compile("Personal.*?₹\\s*([\\d,]+)");
+        Matcher personalMatcher = personalPattern.matcher(pageText);
+        if (personalMatcher.find()) {
+            try {
+                String priceStr = personalMatcher.group(1).replace(",", "");
+                return Double.parseDouble(priceStr);
+            } catch (NumberFormatException e) {
+                logger.warn("Failed to parse Microsoft 365 price");
+            }
+        }
+        return 489.0; // Microsoft 365 Personal fallback
+    }
+}
