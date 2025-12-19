@@ -12,6 +12,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 // Components
 import Login from './components/auth/Login';
 import Signup from './components/auth/Signup';
+import ForgotPassword from './components/auth/ForgotPassword';
 import Navbar from './components/common/Navbar';
 import Sidebar from './components/common/Sidebar';
 import Dashboard from './components/dashboard/Dashboard';
@@ -345,6 +346,46 @@ const theme = createTheme({
         },
       },
     },
+    MuiMenuItem: {
+      styleOverrides: {
+        root: {
+          color: '#FFFFFF',
+          '&:hover': {
+            backgroundColor: 'rgba(229, 9, 20, 0.15)',
+          },
+          '&.Mui-selected': {
+            backgroundColor: 'rgba(229, 9, 20, 0.25)',
+            '&:hover': {
+              backgroundColor: 'rgba(229, 9, 20, 0.35)',
+            },
+          },
+        },
+      },
+    },
+    MuiInputBase: {
+      styleOverrides: {
+        root: {
+          color: '#FFFFFF',
+        },
+        input: {
+          color: '#FFFFFF',
+          '&::placeholder': {
+            color: '#666666',
+            opacity: 1,
+          },
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          color: '#FFFFFF',
+          '&:hover': {
+            backgroundColor: 'rgba(229, 9, 20, 0.15)',
+          },
+        },
+      },
+    },
   },
 });
 
@@ -390,6 +431,7 @@ function App() {
             {/* Public Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
 
             {/* Protected Routes */}
             <Route

@@ -2,6 +2,7 @@ package com.subscriptiontracker.service;
 
 import com.subscriptiontracker.dto.AuthResponse;
 import com.subscriptiontracker.dto.LoginRequest;
+import com.subscriptiontracker.dto.ResetPasswordRequest;
 import com.subscriptiontracker.dto.SignupRequest;
 import com.subscriptiontracker.entity.User;
 import com.subscriptiontracker.exception.BadRequestException;
@@ -163,5 +164,62 @@ public class AuthService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         return userDetails.getId();
+    }
+
+    /**
+     * Send password reset OTP to user's email
+     */
+    public String sendPasswordResetOtp(String email) {
+        email = email.toLowerCase().trim();
+
+        try {
+            // Use the dedicated password reset OTP method
+            otpService.sendPasswordResetOtp(email);
+            logger.info("Password reset OTP sent to: {}", email);
+            return "Password reset OTP sent to your email. Please check your inbox.";
+        } catch (BadRequestException e) {
+            // Re-throw BadRequestException as-is (e.g., "No account found")
+            throw e;
+        } catch (Exception e) {
+            logger.error("Failed to send password reset OTP to {}: {}", email, e.getMessage());
+            throw new BadRequestException("Failed to send OTP. Please try again later.");
+        }
+    }
+
+    /**
+     * Reset password using OTP verification
+     */
+    @Transactional
+    public String resetPassword(ResetPasswordRequest request) {
+        String email = request.getEmail().toLowerCase().trim();
+
+        // Check if user exists
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BadRequestException("No account found with this email address."));
+
+        // Validate OTP for password reset (doesn't mark as used yet)
+        boolean isValid = otpService.validateOtpForPasswordReset(email, request.getOtp());
+        if (!isValid) {
+            throw new BadRequestException("Invalid or expired OTP. Please request a new one.");
+        }
+
+        // Validate new password
+        String newPassword = request.getNewPassword();
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new BadRequestException("Password must be at least 6 characters long.");
+        }
+        if (newPassword.contains(" ")) {
+            throw new BadRequestException("Password cannot contain spaces.");
+        }
+
+        // Update password
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        // Clear OTPs for this email
+        otpService.clearOtpsForEmail(email);
+
+        logger.info("Password reset successful for: {}", email);
+        return "Password reset successful! You can now login with your new password.";
     }
 }

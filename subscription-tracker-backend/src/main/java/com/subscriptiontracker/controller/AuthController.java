@@ -65,4 +65,20 @@ public class AuthController {
 
         return ResponseEntity.ok(ApiResponse.success(profileDTO));
     }
+
+    // Forgot Password - Send OTP to registered email
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<String>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request) {
+        String message = authService.sendPasswordResetOtp(request.getEmail());
+        return ResponseEntity.ok(ApiResponse.success(message, null));
+    }
+
+    // Reset Password - Verify OTP and update password
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<String>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+        String message = authService.resetPassword(request);
+        return ResponseEntity.ok(ApiResponse.success(message, null));
+    }
 }

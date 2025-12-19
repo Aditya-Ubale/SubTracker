@@ -1,6 +1,7 @@
 package com.subscriptiontracker.service;
 
 import com.subscriptiontracker.entity.Subscription;
+import com.subscriptiontracker.repository.SubscriptionPlanRepository;
 import com.subscriptiontracker.repository.SubscriptionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,17 +21,42 @@ public class DataInitializerService implements CommandLineRunner {
         private SubscriptionRepository subscriptionRepository;
 
         @Autowired
+        private SubscriptionPlanRepository subscriptionPlanRepository;
+
+        @Autowired
         private PriceScraperService priceScraperService;
 
         @Override
         public void run(String... args) throws Exception {
                 initializeSubscriptions();
+                checkAndTriggerScraping();
+        }
+
+        private void checkAndTriggerScraping() {
+                // Check if we have any subscription plans scraped
+                long planCount = subscriptionPlanRepository.count();
+                long subscriptionCount = subscriptionRepository.count();
+
+                if (subscriptionCount > 0 && planCount == 0) {
+                        logger.info("Subscriptions exist but no plans scraped yet. Triggering initial scraping...");
+                        try {
+                                priceScraperService.scrapeAllPrices();
+                                logger.info("Initial price scraping completed. Plans scraped: {}",
+                                                subscriptionPlanRepository.count());
+                        } catch (Exception e) {
+                                logger.warn("Initial price scraping failed: {}. Prices will be updated on next scheduled run.",
+                                                e.getMessage());
+                        }
+                } else if (planCount > 0) {
+                        logger.info("Found {} existing subscription plans. Skipping initial scrape.", planCount);
+                }
         }
 
         private void initializeSubscriptions() {
                 // Check if subscriptions already exist
                 if (subscriptionRepository.count() > 0) {
-                        logger.info("Subscriptions already initialized. Skipping...");
+                        logger.info("Subscriptions already initialized. Found {} subscriptions.",
+                                        subscriptionRepository.count());
                         return;
                 }
 

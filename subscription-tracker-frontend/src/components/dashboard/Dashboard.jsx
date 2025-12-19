@@ -324,11 +324,13 @@ const Dashboard = () => {
                         p: 1.5,
                         mb: 1,
                         borderRadius: 2,
-                        bgcolor: 'grey.50',
+                        bgcolor: 'rgba(255, 255, 255, 0.05)',
                         cursor: 'pointer',
                         transition: 'all 0.2s',
+                        border: '1px solid transparent',
                         '&:hover': {
-                          bgcolor: 'grey.100',
+                          bgcolor: 'rgba(229, 9, 20, 0.1)',
+                          borderColor: 'rgba(229, 9, 20, 0.3)',
                           transform: 'translateX(4px)',
                         },
                       }}
@@ -342,10 +344,10 @@ const Dashboard = () => {
                           {getCategoryIcon(subscription.category)}
                         </Avatar>
                         <Box>
-                          <Typography variant="subtitle2" fontWeight={600}>
+                          <Typography variant="subtitle2" fontWeight={600} sx={{ color: '#fff' }}>
                             {subscription.subscriptionName}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)' }}>
                             {subscription.subscriptionType} • Renews {formatDate(subscription.renewalDate)}
                           </Typography>
                         </Box>

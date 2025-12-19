@@ -1,5 +1,6 @@
 package com.subscriptiontracker.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,6 +23,7 @@ public class PriceHistory {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subscription_id", nullable = false)
+    @JsonIgnoreProperties({ "priceHistory", "plans" })
     private Subscription subscription;
 
     @Column(name = "price_monthly")

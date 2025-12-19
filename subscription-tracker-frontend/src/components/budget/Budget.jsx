@@ -380,7 +380,7 @@ const Budget = () => {
                 sx={{
                   height: 16,
                   borderRadius: 8,
-                  bgcolor: 'grey.200',
+                  bgcolor: 'rgba(255, 255, 255, 0.1)',
                 }}
               />
               {/* Over budget indicator */}
@@ -442,7 +442,7 @@ const Budget = () => {
 
       {/* Quick Stats for Over Budget */}
       {isOverBudget && (
-        <Card sx={{ mb: 4, borderRadius: 3, bgcolor: 'grey.50' }}>
+        <Card sx={{ mb: 4, borderRadius: 3, bgcolor: 'rgba(255, 255, 255, 0.05)' }}>
           <CardContent>
             <Typography variant="h6" fontWeight={600} gutterBottom>
               📊 Budget Breakdown

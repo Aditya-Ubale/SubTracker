@@ -16,17 +16,17 @@ import {
   TableRow,
   Paper,
   Skeleton,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Alert,
+  Collapse,
+  IconButton,
 } from '@mui/material';
 import {
   CompareArrows,
   Check,
-  Close,
   FilterList,
+  Category,
+  ExpandMore,
+  ExpandLess,
 } from '@mui/icons-material';
 import {
   BarChart,
@@ -44,40 +44,46 @@ import { formatCurrency, getCategoryIcon } from '../../utils/helpers';
 // Category-specific feature labels
 const CATEGORY_FEATURES = {
   'Streaming': [
-    { key: 'maxDevices', label: 'Max Screens/Devices' },
-    { key: 'streamingQuality', label: 'Video Quality' },
+    { key: 'maxScreens', label: 'Max Screens' },
+    { key: 'videoQuality', label: 'Video Quality' },
+    { key: 'hasAds', label: 'Ad-Free' },
   ],
   'Music': [
     { key: 'maxDevices', label: 'Devices Allowed' },
-    { key: 'features', label: 'Key Features' },
+    { key: 'videoQuality', label: 'Audio Quality' },
   ],
   'AI': [
-    { key: 'features', label: 'AI Capabilities' },
-    { key: 'maxDevices', label: 'Max Users/Devices Allowed' },
+    { key: 'extraFeatures', label: 'AI Capabilities' },
+    { key: 'deviceTypes', label: 'Access Type' },
   ],
   'Productivity': [
-    { key: 'features', label: 'Features Included' },
-    { key: 'maxDevices', label: 'Team Members Allowed' },
-  ],
-  'Storage': [
-    { key: 'features', label: 'Storage Features' },
-    { key: 'maxDevices', label: 'Devices for Sync' },
-  ],
-  'Gaming': [
-    { key: 'features', label: 'Game Library' },
-    { key: 'maxDevices', label: 'Supported Platforms' },
+    { key: 'extraFeatures', label: 'Features' },
+    { key: 'maxDevices', label: 'Team Members' },
   ],
   'default': [
-    { key: 'features', label: 'Key Features' },
-    { key: 'maxDevices', label: 'Max Devices' },
+    { key: 'features', label: 'Features' },
+    { key: 'maxDevices', label: 'Devices' },
   ],
+};
+
+// Category config for styling
+const CATEGORY_CONFIG = {
+  'AI': { displayName: 'AI & Machine Learning', color: '#9C27B0', gradient: 'linear-gradient(135deg, #9C27B0 0%, #673AB7 100%)' },
+  'Streaming': { displayName: 'Entertainment & Streaming', color: '#E50914', gradient: 'linear-gradient(135deg, #E50914 0%, #B81D24 100%)' },
+  'Music': { displayName: 'Music', color: '#1DB954', gradient: 'linear-gradient(135deg, #1DB954 0%, #1ED760 100%)' },
+  'Productivity': { displayName: 'Workspace & Productivity', color: '#4285F4', gradient: 'linear-gradient(135deg, #4285F4 0%, #34A853 100%)' },
+  'Storage': { displayName: 'Cloud Storage', color: '#FF6B00', gradient: 'linear-gradient(135deg, #FF6B00 0%, #FF9500 100%)' },
+  'Gaming': { displayName: 'Gaming', color: '#00D166', gradient: 'linear-gradient(135deg, #00D166 0%, #00B87C 100%)' },
 };
 
 const Comparison = () => {
   const [loading, setLoading] = useState(true);
+  const [loadingPlans, setLoadingPlans] = useState({});
   const [availableSubscriptions, setAvailableSubscriptions] = useState([]);
-  const [selectedSubscriptions, setSelectedSubscriptions] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [expandedSubscriptions, setExpandedSubscriptions] = useState({});
+  const [subscriptionPlans, setSubscriptionPlans] = useState({});
+  const [selectedPlans, setSelectedPlans] = useState([]);
 
   useEffect(() => {
     fetchSubscriptions();
@@ -95,6 +101,22 @@ const Comparison = () => {
     }
   };
 
+  const fetchPlansForSubscription = async (subscription) => {
+    if (subscriptionPlans[subscription.id]) return;
+
+    try {
+      setLoadingPlans(prev => ({ ...prev, [subscription.id]: true }));
+      const response = await subscriptionAPI.getPlansForSubscription(subscription.name);
+      const plans = response.data.data || [];
+      setSubscriptionPlans(prev => ({ ...prev, [subscription.id]: plans }));
+    } catch (error) {
+      console.error('Error fetching plans:', error);
+      setSubscriptionPlans(prev => ({ ...prev, [subscription.id]: [] }));
+    } finally {
+      setLoadingPlans(prev => ({ ...prev, [subscription.id]: false }));
+    }
+  };
+
   // Get unique categories
   const categories = useMemo(() => {
     const cats = [...new Set(availableSubscriptions.map((sub) => sub.category))];
@@ -108,83 +130,69 @@ const Comparison = () => {
   }, [availableSubscriptions, selectedCategory]);
 
   // Handle category change
-  const handleCategoryChange = (event) => {
-    const newCategory = event.target.value;
-    setSelectedCategory(newCategory);
-    // Clear selections if category changes
-    setSelectedSubscriptions([]);
+  const handleCategoryChange = (category) => {
+    setSelectedCategory(category);
+    setExpandedSubscriptions({});
+    setSelectedPlans([]);
   };
 
-  const handleToggleSubscription = (subscription) => {
-    setSelectedSubscriptions((prev) => {
-      const exists = prev.find((s) => s.id === subscription.id);
+  // Handle subscription expansion
+  const handleSubscriptionClick = async (subscription) => {
+    const isExpanded = expandedSubscriptions[subscription.id];
+
+    if (!isExpanded) {
+      await fetchPlansForSubscription(subscription);
+    }
+
+    setExpandedSubscriptions(prev => ({
+      ...prev,
+      [subscription.id]: !isExpanded,
+    }));
+  };
+
+  // Handle plan selection
+  const handlePlanSelect = (plan, subscription) => {
+    setSelectedPlans(prev => {
+      const exists = prev.find(p => p.id === plan.id);
       if (exists) {
-        return prev.filter((s) => s.id !== subscription.id);
+        return prev.filter(p => p.id !== plan.id);
       }
-      if (prev.length >= 4) {
-        return prev; // Max 4 subscriptions
-      }
-      return [...prev, subscription];
+      if (prev.length >= 6) return prev;
+      return [...prev, {
+        ...plan,
+        subscriptionLogo: subscription.logoUrl,
+        category: subscription.category
+      }];
     });
   };
 
   const clearSelection = () => {
-    setSelectedSubscriptions([]);
+    setSelectedPlans([]);
   };
 
-  // Get the current category (from selected subscriptions or filter)
-  const currentCategory = useMemo(() => {
-    if (selectedSubscriptions.length > 0) {
-      return selectedSubscriptions[0].category;
+  // Get feature value
+  const getFeatureValue = (plan, featureKey) => {
+    if (featureKey === 'hasAds') {
+      return plan.hasAds ? '📢 With Ads' : '✅ Ad-Free';
     }
-    return selectedCategory || 'default';
-  }, [selectedSubscriptions, selectedCategory]);
-
-  // Get category-specific features to display
-  const featuresToDisplay = CATEGORY_FEATURES[currentCategory] || CATEGORY_FEATURES['default'];
-
-  // Parse features string (JSON) safely
-  const parseFeatures = (featuresStr) => {
-    if (!featuresStr) return 'N/A';
-    try {
-      const features = JSON.parse(featuresStr);
-      if (Array.isArray(features)) {
-        return features.slice(0, 3).join(', '); // Show first 3 features
-      }
-      return featuresStr;
-    } catch {
-      // If not JSON, return as is
-      return featuresStr;
+    if (featureKey === 'features' && Array.isArray(plan.features)) {
+      return plan.features.slice(0, 2).join(', ');
     }
+    return plan[featureKey] || 'N/A';
   };
 
-  // Get feature value for a subscription
-  const getFeatureValue = (subscription, featureKey) => {
-    if (featureKey === 'features') {
-      return parseFeatures(subscription.features);
-    }
-    return subscription[featureKey] || 'N/A';
-  };
-
-  // Prepare chart data - Show ACTUAL monthly and yearly prices
-  const priceChartData = selectedSubscriptions.map((sub) => ({
-    name: sub.name,
-    'Monthly Price': sub.priceMonthly,
-    'Yearly Price': sub.priceYearly,
+  // Chart data
+  const priceChartData = selectedPlans.map((plan) => ({
+    name: `${plan.subscriptionName}\n${plan.planName}`,
+    'Monthly': plan.priceMonthly || 0,
+    'Yearly': plan.priceYearly || 0,
   }));
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <Box
-          sx={{
-            bgcolor: 'background.paper',
-            p: 2,
-            borderRadius: 2,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-          }}
-        >
-          <Typography fontWeight={600}>{label}</Typography>
+        <Box sx={{ bgcolor: '#1a1a1a', p: 2, borderRadius: 2, boxShadow: 3, border: '1px solid #333' }}>
+          <Typography fontWeight={600} color="#fff">{label}</Typography>
           {payload.map((entry, index) => (
             <Box key={index} sx={{ color: entry.color, mt: 0.5 }}>
               {entry.name}: {formatCurrency(entry.value)}
@@ -196,14 +204,17 @@ const Comparison = () => {
     return null;
   };
 
+  const currentCategory = selectedCategory || 'default';
+  const featuresToDisplay = CATEGORY_FEATURES[currentCategory] || CATEGORY_FEATURES['default'];
+
   if (loading) {
     return (
       <Box>
-        <Skeleton variant="rectangular" height={60} sx={{ mb: 3, borderRadius: 2 }} />
+        <Skeleton variant="rectangular" height={60} sx={{ mb: 3, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.1)' }} />
         <Grid container spacing={2}>
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Grid item xs={6} sm={4} md={2} key={i}>
-              <Skeleton variant="rounded" height={120} />
+          {[1, 2, 3, 4].map((i) => (
+            <Grid item xs={6} sm={3} key={i}>
+              <Skeleton variant="rounded" height={100} sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} />
             </Grid>
           ))}
         </Grid>
@@ -216,275 +227,337 @@ const Comparison = () => {
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
-          <Typography variant="h4" fontWeight={700}>
+          <Typography variant="h4" fontWeight={700} sx={{ color: '#fff' }}>
             Compare Subscriptions
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Compare similar subscriptions within the same category
+          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+            Select a category, expand services to see plans, then compare them
           </Typography>
         </Box>
-        {selectedSubscriptions.length > 0 && (
-          <Button variant="outlined" onClick={clearSelection}>
-            Clear Selection ({selectedSubscriptions.length})
+        {selectedPlans.length > 0 && (
+          <Button
+            variant="outlined"
+            onClick={clearSelection}
+            sx={{
+              borderColor: '#E50914',
+              color: '#E50914',
+              '&:hover': { borderColor: '#ff4444', bgcolor: 'rgba(229,9,20,0.1)' }
+            }}
+          >
+            Clear ({selectedPlans.length})
           </Button>
         )}
       </Box>
 
-      {/* Category Filter */}
-      <Card sx={{ mb: 3, borderRadius: 3 }}>
+      {/* Step 1: Category Selection */}
+      <Card sx={{ mb: 3, borderRadius: 3, bgcolor: '#1a1a1a', border: '1px solid #333' }}>
         <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <FilterList color="primary" />
-            <Typography variant="subtitle1" fontWeight={600}>
-              Filter by Category
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+            <Category sx={{ color: '#E50914' }} />
+            <Typography variant="h6" fontWeight={600} sx={{ color: '#fff' }}>
+              Step 1: Select Category
             </Typography>
-            <FormControl sx={{ minWidth: 200 }} size="small">
-              <InputLabel>Select Category</InputLabel>
-              <Select
-                value={selectedCategory}
-                label="Select Category"
-                onChange={handleCategoryChange}
-              >
-                <MenuItem value="">
-                  <em>All Categories</em>
-                </MenuItem>
-                {categories.map((cat) => (
-                  <MenuItem key={cat} value={cat}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {getCategoryIcon(cat)}
-                      {cat}
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            {selectedCategory && (
-              <Chip
-                label={`Showing: ${selectedCategory}`}
-                onDelete={() => setSelectedCategory('')}
-                color="primary"
-                variant="outlined"
-              />
-            )}
           </Box>
-          {!selectedCategory && (
-            <Alert severity="info" sx={{ mt: 2 }}>
-              💡 <strong>Tip:</strong> Select a category to compare similar subscriptions.
-              Comparing subscriptions within the same category gives you more meaningful insights!
-            </Alert>
-          )}
+          <Grid container spacing={2}>
+            {categories.map((cat) => {
+              const config = CATEGORY_CONFIG[cat] || { displayName: cat, color: '#666' };
+              const isSelected = selectedCategory === cat;
+              const count = availableSubscriptions.filter(s => s.category === cat).length;
+
+              return (
+                <Grid item xs={6} sm={4} md={2} key={cat}>
+                  <Card
+                    sx={{
+                      cursor: 'pointer',
+                      border: isSelected ? `3px solid ${config.color}` : '1px solid #444',
+                      borderRadius: 2,
+                      bgcolor: isSelected ? `${config.color}20` : '#252525',
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        borderColor: config.color,
+                        transform: 'translateY(-4px)',
+                        boxShadow: `0 8px 24px ${config.color}40`,
+                        bgcolor: '#333',
+                      },
+                    }}
+                    onClick={() => handleCategoryChange(cat)}
+                  >
+                    <CardContent sx={{ textAlign: 'center', py: 2, px: 1 }}>
+                      <Avatar sx={{ width: 44, height: 44, mx: 'auto', mb: 1, bgcolor: `${config.color}30`, color: config.color }}>
+                        {getCategoryIcon(cat)}
+                      </Avatar>
+                      <Typography variant="body2" fontWeight={600} sx={{ color: '#fff' }}>{cat}</Typography>
+                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)' }}>{count} services</Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })}
+          </Grid>
         </CardContent>
       </Card>
 
-      {/* Selection Grid */}
-      <Card sx={{ mb: 4, borderRadius: 3 }}>
-        <CardContent>
-          <Typography variant="h6" fontWeight={600} gutterBottom>
-            Select Subscriptions to Compare
-            {selectedCategory && (
-              <Chip
-                label={selectedCategory}
-                size="small"
-                sx={{ ml: 2 }}
-                color="primary"
-              />
-            )}
-          </Typography>
-          {filteredSubscriptions.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <Typography color="text.secondary">
-                No subscriptions found in this category
-              </Typography>
+      {/* Step 2: Service & Plan Selection */}
+      {selectedCategory && (
+        <Card sx={{ mb: 4, borderRadius: 3, bgcolor: '#1a1a1a', border: '1px solid #333' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <FilterList sx={{ color: '#E50914' }} />
+              <Box>
+                <Typography variant="h6" fontWeight={600} sx={{ color: '#fff' }}>
+                  Step 2: Expand Services & Select Plans
+                </Typography>
+                <Chip
+                  label={CATEGORY_CONFIG[selectedCategory]?.displayName || selectedCategory}
+                  size="small"
+                  sx={{
+                    mt: 0.5,
+                    bgcolor: `${CATEGORY_CONFIG[selectedCategory]?.color}30`,
+                    color: CATEGORY_CONFIG[selectedCategory]?.color,
+                    fontWeight: 600,
+                  }}
+                />
+              </Box>
             </Box>
-          ) : (
-            <Grid container spacing={2}>
-              {filteredSubscriptions.map((sub) => {
-                const isSelected = selectedSubscriptions.find((s) => s.id === sub.id);
-                const canSelect = selectedSubscriptions.length < 4 || isSelected;
 
-                return (
-                  <Grid item xs={6} sm={4} md={2} key={sub.id}>
-                    <Card
-                      sx={{
-                        cursor: canSelect ? 'pointer' : 'not-allowed',
-                        border: isSelected ? 2 : 1,
-                        borderColor: isSelected ? 'primary.main' : 'divider',
-                        opacity: !canSelect ? 0.5 : 1,
-                        transition: 'all 0.2s',
-                        '&:hover': canSelect ? {
-                          borderColor: 'primary.main',
-                          transform: 'translateY(-2px)',
-                        } : {},
-                      }}
-                      onClick={() => canSelect && handleToggleSubscription(sub)}
-                    >
-                      <CardContent sx={{ textAlign: 'center', p: 2 }}>
-                        <Box sx={{ position: 'relative', display: 'inline-block' }}>
-                          <Avatar
-                            src={sub.logoUrl}
-                            sx={{ width: 48, height: 48, mx: 'auto', mb: 1, bgcolor: 'primary.light' }}
-                          >
-                            {getCategoryIcon(sub.category)}
-                          </Avatar>
-                          {isSelected && (
-                            <Box
+            <Alert
+              severity="info"
+              sx={{
+                mb: 2,
+                bgcolor: 'rgba(33, 150, 243, 0.1)',
+                color: '#90CAF9',
+                border: '1px solid rgba(33, 150, 243, 0.3)',
+                '& .MuiAlert-icon': { color: '#90CAF9' }
+              }}
+            >
+              💡 Click on a service to see all available plans, then click on plans to select them for comparison
+            </Alert>
+
+            {filteredSubscriptions.map((sub) => {
+              const isExpanded = expandedSubscriptions[sub.id];
+              const plans = subscriptionPlans[sub.id] || [];
+              const isLoadingPlans = loadingPlans[sub.id];
+              const catConfig = CATEGORY_CONFIG[sub.category] || { color: '#666' };
+
+              return (
+                <Box key={sub.id} sx={{ mb: 2 }}>
+                  <Card
+                    sx={{
+                      cursor: 'pointer',
+                      border: isExpanded ? `2px solid ${catConfig.color}` : '1px solid #444',
+                      borderRadius: 2,
+                      bgcolor: isExpanded ? `${catConfig.color}10` : '#252525',
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        borderColor: catConfig.color,
+                        bgcolor: '#333',
+                        transform: 'translateX(4px)',
+                      },
+                    }}
+                    onClick={() => handleSubscriptionClick(sub)}
+                  >
+                    <CardContent sx={{ py: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Avatar src={sub.logoUrl} sx={{ width: 48, height: 48, bgcolor: '#333' }}>
+                          {getCategoryIcon(sub.category)}
+                        </Avatar>
+                        <Box sx={{ flex: 1 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="h6" fontWeight={700} sx={{ color: '#fff' }}>{sub.name}</Typography>
+                            <Chip
+                              label={sub.category}
+                              size="small"
                               sx={{
-                                position: 'absolute',
-                                top: -4,
-                                right: -4,
-                                bgcolor: 'primary.main',
-                                borderRadius: '50%',
-                                width: 20,
-                                height: 20,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
+                                bgcolor: `${catConfig.color}30`,
+                                color: catConfig.color,
+                                fontWeight: 600,
+                                fontSize: '0.7rem',
                               }}
-                            >
-                              <Check sx={{ color: 'white', fontSize: 14 }} />
-                            </Box>
-                          )}
+                            />
+                          </Box>
+                          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>
+                            From {formatCurrency(sub.priceMonthly)}/mo • {plans.length || '...'} plans available
+                          </Typography>
                         </Box>
-                        <Typography variant="body2" fontWeight={600} noWrap>
-                          {sub.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {formatCurrency(sub.priceMonthly)}/mo
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                );
-              })}
-            </Grid>
-          )}
-        </CardContent>
-      </Card>
+                        <IconButton size="small" sx={{ color: '#fff' }}>
+                          {isExpanded ? <ExpandLess /> : <ExpandMore />}
+                        </IconButton>
+                      </Box>
+                    </CardContent>
+                  </Card>
+
+                  <Collapse in={isExpanded}>
+                    <Box sx={{ pl: 4, pt: 1 }}>
+                      {isLoadingPlans ? (
+                        <Grid container spacing={2} sx={{ p: 2 }}>
+                          {[1, 2, 3].map(i => (
+                            <Grid item xs={12} sm={4} key={i}>
+                              <Skeleton variant="rounded" height={140} sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} />
+                            </Grid>
+                          ))}
+                        </Grid>
+                      ) : plans.length > 0 ? (
+                        <Grid container spacing={2} sx={{ p: 1 }}>
+                          {plans.map((plan) => {
+                            const isPlanSelected = selectedPlans.find(p => p.id === plan.id);
+
+                            return (
+                              <Grid item xs={12} sm={6} md={3} key={plan.id}>
+                                <Card
+                                  sx={{
+                                    cursor: 'pointer',
+                                    border: isPlanSelected ? '2px solid #E50914' : '1px solid #444',
+                                    borderRadius: 2,
+                                    bgcolor: isPlanSelected ? 'rgba(229, 9, 20, 0.15)' : '#2a2a2a',
+                                    transition: 'all 0.3s ease',
+                                    '&:hover': {
+                                      borderColor: '#E50914',
+                                      transform: 'translateY(-4px)',
+                                      boxShadow: '0 8px 24px rgba(229,9,20,0.3)',
+                                      bgcolor: '#333',
+                                    },
+                                  }}
+                                  onClick={(e) => { e.stopPropagation(); handlePlanSelect(plan, sub); }}
+                                >
+                                  <CardContent sx={{ p: 2 }}>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                      <Typography variant="subtitle1" fontWeight={700} sx={{ color: '#fff' }}>
+                                        {plan.planName}
+                                      </Typography>
+                                      {isPlanSelected && <Check sx={{ color: '#E50914' }} fontSize="small" />}
+                                    </Box>
+                                    <Typography variant="h5" fontWeight={800} sx={{ color: '#E50914' }}>
+                                      {formatCurrency(plan.priceMonthly)}
+                                      <Typography component="span" variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>/mo</Typography>
+                                    </Typography>
+                                    <Box sx={{ mt: 1, fontSize: '0.75rem' }}>
+                                      {plan.videoQuality && plan.videoQuality !== 'N/A' && (
+                                        <Typography variant="caption" display="block" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                                          📺 {plan.videoQuality}
+                                        </Typography>
+                                      )}
+                                      {plan.maxScreens && (
+                                        <Typography variant="caption" display="block" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                                          📱 {plan.maxScreens} screens
+                                        </Typography>
+                                      )}
+                                      {plan.hasAds !== null && (
+                                        <Typography variant="caption" display="block" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                                          {plan.hasAds ? '📢 With Ads' : '✅ Ad-free'}
+                                        </Typography>
+                                      )}
+                                    </Box>
+                                  </CardContent>
+                                </Card>
+                              </Grid>
+                            );
+                          })}
+                        </Grid>
+                      ) : (
+                        <Alert
+                          severity="info"
+                          sx={{
+                            m: 1,
+                            bgcolor: 'rgba(33, 150, 243, 0.1)',
+                            color: '#90CAF9',
+                            border: '1px solid rgba(33, 150, 243, 0.3)',
+                          }}
+                        >
+                          No specific plans found for this service
+                        </Alert>
+                      )}
+                    </Box>
+                  </Collapse>
+                </Box>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Comparison Results */}
-      {selectedSubscriptions.length >= 2 && (
+      {selectedPlans.length >= 2 && (
         <>
-          {/* Price Comparison Chart - Full Width */}
-          <Card sx={{ mb: 4, borderRadius: 3 }}>
+          <Card sx={{ mb: 4, borderRadius: 3, bgcolor: '#1a1a1a', border: '1px solid #333' }}>
             <CardContent>
-              <Typography variant="h6" fontWeight={600} gutterBottom>
-                Price Comparison
+              <Typography variant="h6" fontWeight={600} gutterBottom sx={{ color: '#fff' }}>
+                💰 Price Comparison
               </Typography>
               <Box sx={{ height: 350 }}>
                 <ResponsiveContainer>
-                  <BarChart data={priceChartData} margin={{ top: 20, right: 30, left: 40, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#333333" />
-                    <XAxis dataKey="name" />
-                    <YAxis tickFormatter={(value) => `₹${value.toLocaleString()}`} />
+                  <BarChart data={priceChartData} margin={{ top: 20, right: 30, left: 40, bottom: 60 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                    <XAxis dataKey="name" angle={-20} textAnchor="end" height={80} tick={{ fontSize: 11, fill: '#999' }} />
+                    <YAxis tickFormatter={(value) => `₹${value.toLocaleString()}`} tick={{ fill: '#999' }} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Legend />
-                    <Bar
-                      dataKey="Monthly Price"
-                      fill="#E50914"
-                      radius={[8, 8, 0, 0]}
-                      barSize={60}
-                    />
-                    <Bar
-                      dataKey="Yearly Price"
-                      fill="#B81D24"
-                      radius={[8, 8, 0, 0]}
-                      barSize={60}
-                    />
+                    <Legend wrapperStyle={{ color: '#fff' }} />
+                    <Bar dataKey="Monthly" fill="#E50914" radius={[4, 4, 0, 0]} barSize={40} />
+                    <Bar dataKey="Yearly" fill="#B81D24" radius={[4, 4, 0, 0]} barSize={40} />
                   </BarChart>
                 </ResponsiveContainer>
               </Box>
             </CardContent>
           </Card>
 
-          {/* Feature Comparison Table */}
-          <Card sx={{ borderRadius: 3 }}>
+          <Card sx={{ borderRadius: 3, bgcolor: '#1a1a1a', border: '1px solid #333' }}>
             <CardContent>
-              <Typography variant="h6" fontWeight={600} gutterBottom>
-                Feature Comparison
-                <Chip
-                  label={currentCategory !== 'default' ? currentCategory : 'Mixed'}
-                  size="small"
-                  sx={{ ml: 2 }}
-                  color="secondary"
-                />
+              <Typography variant="h6" fontWeight={600} gutterBottom sx={{ color: '#fff' }}>
+                📊 Feature Comparison
               </Typography>
-              <TableContainer component={Paper} elevation={0}>
-                <Table sx={{ tableLayout: 'fixed' }}>
+              <TableContainer component={Paper} elevation={0} sx={{ bgcolor: 'transparent' }}>
+                <Table size="small">
                   <TableHead>
-                    <TableRow sx={{ bgcolor: 'grey.50' }}>
-                      <TableCell sx={{ fontWeight: 700, width: '20%' }}>Feature</TableCell>
-                      {selectedSubscriptions.map((sub) => (
-                        <TableCell key={sub.id} align="center" sx={{ fontWeight: 700 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                            <Avatar src={sub.logoUrl} sx={{ width: 28, height: 28 }}>
-                              {getCategoryIcon(sub.category)}
-                            </Avatar>
-                            {sub.name}
-                          </Box>
+                    <TableRow sx={{ bgcolor: 'rgba(229, 9, 20, 0.15)' }}>
+                      <TableCell sx={{ fontWeight: 700, width: '15%', color: '#fff', borderColor: '#444' }}>Feature</TableCell>
+                      {selectedPlans.map((plan) => (
+                        <TableCell key={plan.id} align="center" sx={{ borderColor: '#444' }}>
+                          <Avatar src={plan.subscriptionLogo} sx={{ width: 28, height: 28, mx: 'auto', mb: 0.5 }} />
+                          <Typography variant="caption" fontWeight={700} display="block" sx={{ color: '#fff' }}>
+                            {plan.subscriptionName}
+                          </Typography>
+                          <Chip
+                            label={plan.planName}
+                            size="small"
+                            sx={{
+                              fontSize: '0.65rem',
+                              bgcolor: 'rgba(229,9,20,0.3)',
+                              color: '#E50914',
+                              fontWeight: 600,
+                            }}
+                          />
                         </TableCell>
                       ))}
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {/* Monthly Price */}
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 600 }}>Monthly Price</TableCell>
-                      {selectedSubscriptions.map((sub) => (
-                        <TableCell key={sub.id} align="center">
-                          <Typography fontWeight={700} color="primary.main">
-                            {formatCurrency(sub.priceMonthly)}
-                          </Typography>
+                      <TableCell sx={{ fontWeight: 600, color: '#fff', borderColor: '#444' }}>Monthly Price</TableCell>
+                      {selectedPlans.map((plan) => (
+                        <TableCell key={plan.id} align="center" sx={{ borderColor: '#444' }}>
+                          <Typography fontWeight={700} sx={{ color: '#E50914' }}>{formatCurrency(plan.priceMonthly)}</Typography>
                         </TableCell>
                       ))}
                     </TableRow>
-
-                    {/* Yearly Price */}
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 600 }}>Yearly Price</TableCell>
-                      {selectedSubscriptions.map((sub) => (
-                        <TableCell key={sub.id} align="center">
-                          <Box>
-                            <Typography>{formatCurrency(sub.priceYearly)}</Typography>
-                            <Typography variant="caption" color="success.main">
-                              Save {formatCurrency((sub.priceMonthly * 12) - sub.priceYearly)}/yr
-                            </Typography>
-                          </Box>
+                      <TableCell sx={{ fontWeight: 600, color: '#fff', borderColor: '#444' }}>Yearly Price</TableCell>
+                      {selectedPlans.map((plan) => (
+                        <TableCell key={plan.id} align="center" sx={{ borderColor: '#444' }}>
+                          <Typography sx={{ color: 'rgba(255,255,255,0.8)' }}>{formatCurrency(plan.priceYearly)}</Typography>
                         </TableCell>
                       ))}
                     </TableRow>
-
-                    {/* Dynamic Category-Specific Features */}
                     {featuresToDisplay.map((feature) => (
                       <TableRow key={feature.key}>
-                        <TableCell sx={{ fontWeight: 600 }}>{feature.label}</TableCell>
-                        {selectedSubscriptions.map((sub) => (
-                          <TableCell key={sub.id} align="center">
-                            <Typography variant="body2">
-                              {getFeatureValue(sub, feature.key)}
+                        <TableCell sx={{ fontWeight: 600, color: '#fff', borderColor: '#444' }}>{feature.label}</TableCell>
+                        {selectedPlans.map((plan) => (
+                          <TableCell key={plan.id} align="center" sx={{ borderColor: '#444' }}>
+                            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                              {getFeatureValue(plan, feature.key)}
                             </Typography>
                           </TableCell>
                         ))}
                       </TableRow>
                     ))}
-
-                    {/* Description (if available) */}
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 600, verticalAlign: 'top' }}>Description</TableCell>
-                      {selectedSubscriptions.map((sub) => (
-                        <TableCell key={sub.id} align="left" sx={{ verticalAlign: 'top' }}>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              whiteSpace: 'normal',
-                              wordBreak: 'break-word',
-                              lineHeight: 1.6,
-                            }}
-                          >
-                            {sub.description || 'No description available'}
-                          </Typography>
-                        </TableCell>
-                      ))}
-                    </TableRow>
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -493,16 +566,16 @@ const Comparison = () => {
         </>
       )}
 
-      {selectedSubscriptions.length < 2 && (
-        <Card sx={{ borderRadius: 3, textAlign: 'center', py: 8 }}>
-          <CompareArrows sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            Select at least 2 subscriptions to compare
+      {selectedPlans.length < 2 && (
+        <Card sx={{ borderRadius: 3, textAlign: 'center', py: 8, bgcolor: '#1a1a1a', border: '1px solid #333' }}>
+          <CompareArrows sx={{ fontSize: 64, color: '#666', mb: 2 }} />
+          <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.7)' }} gutterBottom>
+            Select at least 2 plans to compare
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {selectedCategory
-              ? `Choose from ${filteredSubscriptions.length} ${selectedCategory} subscriptions above`
-              : 'Select a category first, then choose subscriptions to compare'}
+          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+            {!selectedCategory
+              ? 'Start by selecting a category above'
+              : 'Click on services to expand and see their plans, then select plans to compare'}
           </Typography>
         </Card>
       )}

@@ -36,17 +36,39 @@ public class OtpService {
     private final SecureRandom secureRandom = new SecureRandom();
 
     /**
-     * Generate and send OTP to email
+     * Generate and send OTP to email (for signup - rejects registered emails)
      */
     @Transactional
     public String sendOtp(OtpRequest request) {
         String email = request.getEmail().toLowerCase().trim();
 
-        // Check if email is already registered
+        // Check if email is already registered (for signup flow)
         if (userRepository.existsByEmail(email)) {
             throw new BadRequestException("This email is already registered. Please login instead.");
         }
 
+        return sendOtpInternal(email, "verification");
+    }
+
+    /**
+     * Generate and send OTP for password reset (requires registered email)
+     */
+    @Transactional
+    public String sendPasswordResetOtp(String email) {
+        email = email.toLowerCase().trim();
+
+        // For password reset, email MUST be registered
+        if (!userRepository.existsByEmail(email)) {
+            throw new BadRequestException("No account found with this email address.");
+        }
+
+        return sendOtpInternal(email, "password reset");
+    }
+
+    /**
+     * Internal method to generate and send OTP
+     */
+    private String sendOtpInternal(String email, String purpose) {
         // Check cooldown period (prevent spam)
         Optional<Otp> existingOtp = otpRepository.findTopByEmailOrderByCreatedAtDesc(email);
         if (existingOtp.isPresent()) {
@@ -73,9 +95,10 @@ public class OtpService {
         try {
             if (emailService != null) {
                 emailService.sendOtpEmail(email, otpCode);
-                logger.info("OTP sent successfully to {}", email);
+                logger.info("OTP sent successfully to {} for {}", email, purpose);
             } else {
-                logger.warn("Email service not available. OTP: {} for email: {}", otpCode, email);
+                // Email service not available - log OTP for development
+                logger.warn("Email service not available. OTP: {} for email: {} ({})", otpCode, email, purpose);
             }
         } catch (Exception e) {
             logger.error("Failed to send OTP email to {}: {}", email, e.getMessage());
@@ -86,7 +109,7 @@ public class OtpService {
     }
 
     /**
-     * Verify OTP
+     * Verify OTP (marks OTP as verified/used)
      */
     @Transactional
     public boolean verifyOtp(OtpVerifyRequest request) {
@@ -116,6 +139,54 @@ public class OtpService {
         otpRepository.save(otp);
 
         logger.info("OTP verified successfully for {}", email);
+        return true;
+    }
+
+    /**
+     * Validate OTP for password reset (checks validity but allows re-use within
+     * session)
+     * This method checks if the OTP is valid but doesn't mark it as used yet.
+     * The OTP will be cleared after successful password reset.
+     */
+    public boolean validateOtpForPasswordReset(String email, String otpCode) {
+        email = email.toLowerCase().trim();
+        otpCode = otpCode.trim();
+
+        // First check if there's a valid (not expired, not verified) OTP
+        Optional<Otp> validOtp = otpRepository.findValidOtp(email, otpCode, LocalDateTime.now());
+        if (validOtp.isPresent()) {
+            return true;
+        }
+
+        // Check the latest OTP for this email
+        Optional<Otp> latestOtp = otpRepository.findTopByEmailOrderByCreatedAtDesc(email);
+        if (latestOtp.isEmpty()) {
+            throw new BadRequestException("No OTP found. Please request a new one.");
+        }
+
+        Otp otp = latestOtp.get();
+
+        // Check if OTP code matches
+        if (!otp.getOtpCode().equals(otpCode)) {
+            throw new BadRequestException("Invalid OTP. Please check and try again.");
+        }
+
+        // Check if expired
+        if (otp.isExpired()) {
+            throw new BadRequestException("OTP has expired. Please request a new one.");
+        }
+
+        // If OTP was verified recently (within 10 minutes), still allow password reset
+        // This handles the case where user already verified but is now on password step
+        if (otp.getIsVerified()) {
+            LocalDateTime tenMinutesAgo = LocalDateTime.now().minusMinutes(10);
+            if (otp.getCreatedAt().isAfter(tenMinutesAgo)) {
+                logger.debug("OTP was previously verified but still valid for password reset");
+                return true;
+            }
+            throw new BadRequestException("OTP has already been used. Please request a new one.");
+        }
+
         return true;
     }
 

@@ -68,7 +68,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/subscriptions/all").permitAll()
+                        .requestMatchers("/api/subscriptions/all/**").permitAll()
                         .requestMatchers("/api/subscriptions/available").permitAll()
+                        .requestMatchers("/api/subscriptions/plans/**").permitAll()
+                        .requestMatchers("/api/subscriptions/*/plans").permitAll()
+                        .requestMatchers("/api/subscriptions/scrape-prices").permitAll()
                         .requestMatchers("/api/admin/**").authenticated()
                         .anyRequest().authenticated());
 

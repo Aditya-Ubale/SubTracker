@@ -207,7 +207,7 @@ const Login = () => {
               onChange={handleChange}
               required
               sx={{
-                mb: 3,
+                mb: 1,
                 '& .MuiOutlinedInput-root': {
                   backgroundColor: '#333333',
                   '& fieldset': { borderColor: '#444444' },
@@ -237,6 +237,21 @@ const Login = () => {
                 ),
               }}
             />
+
+            {/* Forgot Password Link */}
+            <Box sx={{ textAlign: 'right', mb: 2 }}>
+              <Link
+                to="/forgot-password"
+                style={{
+                  color: '#E50914',
+                  textDecoration: 'none',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                }}
+              >
+                Forgot Password?
+              </Link>
+            </Box>
 
             <Button
               type="submit"

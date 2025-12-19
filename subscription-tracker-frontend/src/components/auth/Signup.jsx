@@ -542,8 +542,8 @@ const Signup = () => {
                 )}
 
                 {/* Password Requirements */}
-                <Box sx={{ mb: 2, p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                <Box sx={{ mb: 2, p: 1.5, bgcolor: 'rgba(255, 255, 255, 0.05)', borderRadius: 1, border: '1px solid #333' }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600, color: '#E5E5E5' }}>
                     Password Requirements:
                   </Typography>
                   <Box sx={{ mt: 0.5, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>

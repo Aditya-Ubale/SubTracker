@@ -1,5 +1,6 @@
 package com.subscriptiontracker.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -64,8 +65,17 @@ public class Subscription {
     private LocalDateTime updatedAt;
 
     // Price history for tracking price changes
+    @Builder.Default
     @OneToMany(mappedBy = "subscription", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties("subscription")
     private List<PriceHistory> priceHistory = new ArrayList<>();
+
+    // Multiple pricing plans for this subscription (Mobile, Basic, Standard,
+    // Premium, etc.)
+    @Builder.Default
+    @OneToMany(mappedBy = "subscription", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties("subscription")
+    private List<SubscriptionPlan> plans = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {

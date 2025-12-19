@@ -58,6 +58,10 @@ export const subscriptionAPI = {
   getById: (id) => api.get(`/subscriptions/all/${id}`),
   getByCategory: (category) => api.get(`/subscriptions/all/category/${category}`),
 
+  // Get plans for a specific subscription
+  getPlansForSubscription: (subscriptionName) => api.get(`/subscriptions/plans/by-name/${encodeURIComponent(subscriptionName)}`),
+  getPlansById: (subscriptionId) => api.get(`/subscriptions/${subscriptionId}/plans`),
+
   // User's subscriptions
   getUserSubscriptions: () => api.get('/user-subscriptions'),
   getUserSubscriptionById: (id) => api.get(`/user-subscriptions/${id}`),
