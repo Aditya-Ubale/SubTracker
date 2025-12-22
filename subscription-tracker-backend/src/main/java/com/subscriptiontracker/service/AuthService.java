@@ -130,6 +130,13 @@ public class AuthService {
             // Get user details
             UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
+            // Update last login time
+            User user = userRepository.findById(userDetails.getId()).orElse(null);
+            if (user != null) {
+                user.setLastLogin(java.time.LocalDateTime.now());
+                userRepository.save(user);
+            }
+
             // Generate JWT token
             String jwt = jwtUtils.generateToken(userDetails);
 

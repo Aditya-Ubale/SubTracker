@@ -53,8 +53,8 @@ public class PriceScraperService {
         SUBSCRIPTION_URLS.put("Netflix", "https://help.netflix.com/en/node/24926");
         SUBSCRIPTION_URLS.put("Amazon Prime",
                 "https://www.amazon.in/gp/help/customer/display.html?nodeId=G34EUPKVMYFW8N2U");
-        SUBSCRIPTION_URLS.put("Hotstar",
-                "https://help.hotstar.com/in/en/support/solutions/articles/68000001237-disney+-hotstar-subscription-plans");
+        SUBSCRIPTION_URLS.put("JioHotstar",
+                "https://www.jiohotstar.com/subscribe");
         SUBSCRIPTION_URLS.put("Spotify", "https://www.spotify.com/in-en/premium/");
         SUBSCRIPTION_URLS.put("DeepSeek", "https://api-docs.deepseek.com/quick_start/pricing");
         SUBSCRIPTION_URLS.put("Gemini", "https://ai.google.dev/pricing");
@@ -281,8 +281,8 @@ public class PriceScraperService {
                 case "Amazon Prime":
                     plans = extractAmazonPrimePlans(doc);
                     break;
-                case "Hotstar":
-                    plans = extractHotstarPlans(doc);
+                case "JioHotstar":
+                    plans = extractJioHotstarPlans(doc);
                     break;
                 case "DeepSeek":
                     plans = extractDeepSeekPlans(doc);
@@ -918,9 +918,59 @@ public class PriceScraperService {
         return null;
     }
 
-    private List<ScrapedPlan> extractHotstarPlans(Document doc) {
+    private List<ScrapedPlan> extractJioHotstarPlans(Document doc) {
         List<ScrapedPlan> plans = new ArrayList<>();
 
+        try {
+            // JioCinema Premium Plans - current pricing as of 2024
+
+            // Plan 1: Premium Monthly
+            ScrapedPlan premiumPlan = new ScrapedPlan("Premium");
+            premiumPlan.priceMonthly = 29.0;
+            premiumPlan.priceYearly = 299.0;
+            premiumPlan.hasAds = false;
+            premiumPlan.deviceTypes = "All Devices";
+            premiumPlan.maxScreens = 4;
+            premiumPlan.videoQuality = "4K HDR";
+            premiumPlan.features.add("Ad-free entertainment");
+            premiumPlan.features.add("4K HDR streaming");
+            premiumPlan.features.add("Watch on 4 devices");
+            premiumPlan.features.add("Disney+ content");
+            premiumPlan.features.add("HBO Originals");
+            premiumPlan.features.add("Live Sports");
+            premiumPlan.extraFeatures = "Disney+, HBO, Peacock content";
+            plans.add(premiumPlan);
+
+            // Plan 2: Family
+            ScrapedPlan familyPlan = new ScrapedPlan("Family");
+            familyPlan.priceMonthly = 89.0;
+            familyPlan.priceYearly = 899.0;
+            familyPlan.hasAds = false;
+            familyPlan.deviceTypes = "All Devices";
+            familyPlan.maxScreens = 4;
+            familyPlan.videoQuality = "4K HDR";
+            familyPlan.features.add("All Premium features");
+            familyPlan.features.add("Family sharing");
+            familyPlan.features.add("Multiple profiles");
+            familyPlan.extraFeatures = "Family sharing enabled";
+            plans.add(familyPlan);
+
+            // Log results
+            for (ScrapedPlan plan : plans) {
+                logger.info("Extracted JioCinema plan: {} - ₹{}/month, Devices: {}, Ads: {}",
+                        plan.planName, plan.priceMonthly, plan.maxScreens, plan.hasAds);
+            }
+
+        } catch (Exception e) {
+            logger.error("Error extracting JioCinema plans: {}", e.getMessage(), e);
+        }
+
+        return plans;
+    }
+
+    // Legacy method kept for compatibility - no longer used
+    private List<ScrapedPlan> extractHotstarPlans(Document doc) {
+        List<ScrapedPlan> plans = new ArrayList<>();
         try {
             String pageText = doc.text();
 

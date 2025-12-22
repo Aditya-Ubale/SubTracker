@@ -50,6 +50,9 @@ public class WatchlistService {
         Watchlist watchlist = Watchlist.builder()
                 .user(user)
                 .subscription(subscription)
+                .planId(request.getPlanId())
+                .planName(request.getPlanName())
+                .planPrice(request.getPlanPrice())
                 .targetPrice(request.getTargetPrice())
                 .notifyOnPriceDrop(request.getNotifyOnPriceDrop() != null ? request.getNotifyOnPriceDrop() : true)
                 .notes(request.getNotes())
@@ -104,6 +107,11 @@ public class WatchlistService {
     private WatchlistDTO convertToDTO(Watchlist watchlist) {
         Subscription subscription = watchlist.getSubscription();
 
+        // Use plan price if available, otherwise subscription base price
+        Double effectivePrice = watchlist.getPlanPrice() != null
+                ? watchlist.getPlanPrice()
+                : subscription.getPriceMonthly();
+
         return WatchlistDTO.builder()
                 .id(watchlist.getId())
                 .subscriptionId(subscription.getId())
@@ -111,7 +119,10 @@ public class WatchlistService {
                 .subscriptionLogo(subscription.getLogoUrl())
                 .category(subscription.getCategory())
                 .websiteUrl(subscription.getWebsiteUrl())
-                .currentPriceMonthly(subscription.getPriceMonthly())
+                .planId(watchlist.getPlanId())
+                .planName(watchlist.getPlanName())
+                .planPrice(watchlist.getPlanPrice())
+                .currentPriceMonthly(effectivePrice)
                 .currentPriceYearly(subscription.getPriceYearly())
                 .targetPrice(watchlist.getTargetPrice())
                 .notifyOnPriceDrop(watchlist.getNotifyOnPriceDrop())

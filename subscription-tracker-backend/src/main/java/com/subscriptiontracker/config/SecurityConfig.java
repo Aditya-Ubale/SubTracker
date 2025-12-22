@@ -73,6 +73,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/subscriptions/plans/**").permitAll()
                         .requestMatchers("/api/subscriptions/*/plans").permitAll()
                         .requestMatchers("/api/subscriptions/scrape-prices").permitAll()
+                        .requestMatchers("/api/admin/login").permitAll()
+                        .requestMatchers("/api/admin/init").permitAll()
                         .requestMatchers("/api/admin/**").authenticated()
                         .anyRequest().authenticated());
 

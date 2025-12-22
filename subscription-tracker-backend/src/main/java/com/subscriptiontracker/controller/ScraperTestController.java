@@ -16,7 +16,6 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/test/scraper")
-@CrossOrigin(origins = "*")
 public class ScraperTestController {
 
     @Autowired
@@ -30,7 +29,7 @@ public class ScraperTestController {
         Map<String, Object> status = new HashMap<>();
 
         String[] services = {
-                "Netflix", "Amazon Prime", "Spotify", "Hotstar",
+                "Netflix", "Amazon Prime", "Spotify", "JioHotstar",
                 "DeepSeek", "Perplexity", "Gemini",
                 "Google Workspace", "Microsoft 365"
         };

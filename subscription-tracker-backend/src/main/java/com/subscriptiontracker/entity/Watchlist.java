@@ -28,6 +28,15 @@ public class Watchlist {
     @JoinColumn(name = "subscription_id", nullable = false)
     private Subscription subscription;
 
+    @Column(name = "plan_id")
+    private Long planId; // Optional: specific plan selected
+
+    @Column(name = "plan_name")
+    private String planName;
+
+    @Column(name = "plan_price")
+    private Double planPrice; // Price of the selected plan
+
     @Column(name = "target_price")
     private Double targetPrice; // Alert when price drops below this
 

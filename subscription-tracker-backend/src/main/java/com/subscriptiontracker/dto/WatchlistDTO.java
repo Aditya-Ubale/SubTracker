@@ -17,7 +17,13 @@ public class WatchlistDTO {
     private String subscriptionName;
     private String subscriptionLogo;
     private String category;
-    private String websiteUrl; // For "Buy Now" button
+    private String websiteUrl;
+
+    // Plan info (null if no specific plan selected)
+    private Long planId;
+    private String planName;
+    private Double planPrice;
+
     private Double currentPriceMonthly;
     private Double currentPriceYearly;
     private Double targetPrice;

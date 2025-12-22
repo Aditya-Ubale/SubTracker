@@ -1,3 +1,17 @@
+/**
+ * SubscriptionList - Premium Subscription Management Page
+ * 
+ * Design Refinements:
+ * - Reduced red usage (red only for urgent renewals ≤7 days)
+ * - Neutral text for prices; emphasis via size/weight
+ * - Service name as primary visual focus
+ * - De-emphasized frequency labels (MONTHLY/YEARLY)
+ * - Softer category pills with reduced saturation
+ * - Subtle "days left" badge styling
+ * - Improved search/filter section with reduced height
+ * - Micro-interactions: elevation + soft shadow on hover
+ * - Max 2 accent colors: indigo (#6366f1), amber for urgent
+ */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -26,7 +40,6 @@ import {
 import {
   Add,
   Search,
-  FilterList,
   MoreVert,
   Edit,
   Delete,
@@ -34,8 +47,36 @@ import {
 } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import { subscriptionAPI } from '../../services/api';
-import { formatCurrency, formatDate, getStatusColor, getCategoryIcon } from '../../utils/helpers';
+import { formatCurrency, formatDate, getCategoryIcon } from '../../utils/helpers';
 import SuccessPopup from '../common/SuccessPopup';
+
+// Category styling with softer, desaturated colors
+const CATEGORY_STYLES = {
+  'Streaming': { bg: 'rgba(239, 68, 68, 0.08)', color: 'rgba(239, 68, 68, 0.8)' },
+  'Music': { bg: 'rgba(16, 185, 129, 0.08)', color: 'rgba(16, 185, 129, 0.8)' },
+  'AI': { bg: 'rgba(139, 92, 246, 0.08)', color: 'rgba(139, 92, 246, 0.8)' },
+  'Productivity': { bg: 'rgba(59, 130, 246, 0.08)', color: 'rgba(59, 130, 246, 0.8)' },
+  'Gaming': { bg: 'rgba(34, 197, 94, 0.08)', color: 'rgba(34, 197, 94, 0.8)' },
+  'default': { bg: 'rgba(107, 114, 128, 0.08)', color: 'rgba(156, 163, 175, 0.9)' },
+};
+
+// Get renewal status styling - red only for urgent (≤7 days)
+const getRenewalStyle = (daysUntilRenewal) => {
+  if (daysUntilRenewal === null || daysUntilRenewal === undefined) {
+    return { bg: 'rgba(107, 114, 128, 0.1)', color: 'rgba(156, 163, 175, 0.8)', label: 'N/A' };
+  }
+  if (daysUntilRenewal <= 0) {
+    return { bg: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', label: 'Due Today' };
+  }
+  if (daysUntilRenewal <= 3) {
+    return { bg: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', label: `${daysUntilRenewal} days` };
+  }
+  if (daysUntilRenewal <= 7) {
+    return { bg: 'rgba(245, 158, 11, 0.08)', color: 'rgba(245, 158, 11, 0.8)', label: `${daysUntilRenewal} days` };
+  }
+  // Calm, subtle badge for non-urgent
+  return { bg: 'rgba(99, 102, 241, 0.08)', color: 'rgba(129, 140, 248, 0.9)', label: `${daysUntilRenewal} days` };
+};
 
 const SubscriptionList = () => {
   const navigate = useNavigate();
@@ -106,6 +147,7 @@ const SubscriptionList = () => {
   };
 
   const handleMenuOpen = (event, subscription) => {
+    event.stopPropagation();
     setAnchorEl(event.currentTarget);
     setSelectedSubscription(subscription);
   };
@@ -132,14 +174,20 @@ const SubscriptionList = () => {
     return sum + (sub.subscriptionType === 'YEARLY' ? price / 12 : price);
   }, 0);
 
+  // Get category style with fallback
+  const getCategoryStyle = (category) => {
+    return CATEGORY_STYLES[category] || CATEGORY_STYLES.default;
+  };
+
   if (loading) {
     return (
       <Box>
-        <Skeleton variant="rectangular" height={60} sx={{ mb: 3, borderRadius: 2 }} />
+        <Skeleton variant="rectangular" height={48} sx={{ mb: 3, borderRadius: 2 }} />
+        <Skeleton variant="rectangular" height={56} sx={{ mb: 3, borderRadius: 2 }} />
         <Grid container spacing={3}>
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Grid item xs={12} sm={6} md={4} key={i}>
-              <Skeleton variant="rounded" height={200} />
+              <Skeleton variant="rounded" height={180} sx={{ borderRadius: 3 }} />
             </Grid>
           ))}
         </Grid>
@@ -158,14 +206,22 @@ const SubscriptionList = () => {
         icon="check"
       />
 
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      {/* Header - Cleaner styling */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Box>
-          <Typography variant="h4" fontWeight={700}>
+          <Typography
+            variant="h4"
+            fontWeight={700}
+            sx={{
+              color: '#fff',
+              letterSpacing: '-0.02em',
+              mb: 0.5,
+            }}
+          >
             My Subscriptions
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {subscriptions.length} active subscriptions • {formatCurrency(totalMonthlySpend)}/month
+          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.45)' }}>
+            {subscriptions.length} active • {formatCurrency(totalMonthlySpend)}/month
           </Typography>
         </Box>
         <Button
@@ -173,41 +229,76 @@ const SubscriptionList = () => {
           startIcon={<Add />}
           onClick={() => navigate('/subscriptions/add')}
           sx={{
-            backgroundColor: '#E50914',
-            '&:hover': { backgroundColor: '#B81D24' },
+            bgcolor: '#E50914',
+            px: 2.5,
+            py: 1,
+            fontWeight: 600,
+            '&:hover': {
+              bgcolor: '#C2070F',
+              transform: 'translateY(-1px)',
+            },
+            '&:active': {
+              transform: 'scale(0.98)',
+            },
+            transition: 'all 0.2s ease',
           }}
         >
-          Add Subscription
+          Add New
         </Button>
       </Box>
 
-      {/* Filters */}
-      <Card sx={{ mb: 3, borderRadius: 3 }}>
-        <CardContent>
+      {/* Search & Filters - Reduced height, better spacing */}
+      <Card
+        sx={{
+          mb: 4,
+          borderRadius: 2.5,
+          bgcolor: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
+          boxShadow: 'none',
+        }}
+      >
+        <CardContent sx={{ py: 2, px: 2.5, '&:last-child': { pb: 2 } }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={5}>
               <TextField
                 fullWidth
                 placeholder="Search subscriptions..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                size="small"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    bgcolor: 'rgba(255, 255, 255, 0.02)',
+                    '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.08)' },
+                    '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.15)' },
+                    '&.Mui-focused fieldset': { borderColor: 'rgba(99, 102, 241, 0.5)' },
+                  },
+                  '& .MuiInputBase-input::placeholder': {
+                    color: 'rgba(255, 255, 255, 0.3)', // Lower contrast placeholder
+                    opacity: 1,
+                  },
+                }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Search color="action" />
+                      <Search sx={{ color: 'rgba(255, 255, 255, 0.3)', fontSize: 20 }} />
                     </InputAdornment>
                   ),
                 }}
-                size="small"
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={6} md={3}>
               <FormControl fullWidth size="small">
-                <InputLabel>Category</InputLabel>
+                <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.4)' }}>Category</InputLabel>
                 <Select
                   value={categoryFilter}
                   label="Category"
                   onChange={(e) => setCategoryFilter(e.target.value)}
+                  sx={{
+                    bgcolor: 'rgba(255, 255, 255, 0.02)',
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.08)' },
+                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.15)' },
+                  }}
                 >
                   {categories.map((cat) => (
                     <MenuItem key={cat} value={cat}>
@@ -217,13 +308,18 @@ const SubscriptionList = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={6} md={3}>
               <FormControl fullWidth size="small">
-                <InputLabel>Sort By</InputLabel>
+                <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.4)' }}>Sort By</InputLabel>
                 <Select
                   value={sortBy}
                   label="Sort By"
                   onChange={(e) => setSortBy(e.target.value)}
+                  sx={{
+                    bgcolor: 'rgba(255, 255, 255, 0.02)',
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.08)' },
+                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.15)' },
+                  }}
                 >
                   <MenuItem value="name">Name</MenuItem>
                   <MenuItem value="price">Price (High to Low)</MenuItem>
@@ -237,13 +333,21 @@ const SubscriptionList = () => {
 
       {/* Subscriptions Grid */}
       {filteredSubscriptions.length === 0 ? (
-        <Card sx={{ borderRadius: 3, textAlign: 'center', py: 8 }}>
-          <Typography variant="h6" color="text.secondary" gutterBottom>
+        <Card
+          sx={{
+            borderRadius: 3,
+            textAlign: 'center',
+            py: 8,
+            bgcolor: 'rgba(255, 255, 255, 0.02)',
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+          }}
+        >
+          <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.6)' }} gutterBottom>
             {searchTerm || categoryFilter !== 'all'
               ? 'No subscriptions match your filters'
               : 'No subscriptions yet'}
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.4)', mb: 3 }}>
             {searchTerm || categoryFilter !== 'all'
               ? 'Try adjusting your search or filters'
               : 'Start tracking your subscriptions today!'}
@@ -253,6 +357,10 @@ const SubscriptionList = () => {
               variant="contained"
               startIcon={<Add />}
               onClick={() => navigate('/subscriptions/add')}
+              sx={{
+                bgcolor: '#E50914',
+                '&:hover': { bgcolor: '#C2070F' },
+              }}
             >
               Add Your First Subscription
             </Button>
@@ -260,151 +368,282 @@ const SubscriptionList = () => {
         </Card>
       ) : (
         <Grid container spacing={3}>
-          {filteredSubscriptions.map((subscription) => (
-            <Grid item xs={12} sm={6} md={4} key={subscription.id}>
-              <Card
-                sx={{
-                  borderRadius: 3,
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
-                  },
-                }}
-              >
-                <CardContent>
-                  {/* Header */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Avatar
-                        src={subscription.subscriptionLogo}
-                        sx={{ width: 48, height: 48, mr: 2, bgcolor: 'primary.light' }}
-                      >
-                        {getCategoryIcon(subscription.category)}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="h6" fontWeight={600}>
-                          {subscription.subscriptionName}
-                        </Typography>
-                        <Chip
-                          label={subscription.category}
-                          size="small"
+          {filteredSubscriptions.map((subscription, index) => {
+            const categoryStyle = getCategoryStyle(subscription.category);
+            const renewalStyle = getRenewalStyle(subscription.daysUntilRenewal);
+
+            return (
+              <Grid item xs={12} sm={6} md={4} key={subscription.id}>
+                <Card
+                  onClick={() => navigate(`/subscriptions/${subscription.id}`)}
+                  sx={{
+                    borderRadius: 3,
+                    cursor: 'pointer',
+                    bgcolor: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+
+                    // Micro-interaction: elevation + soft shadow on hover
+                    '&:hover': {
+                      bgcolor: 'rgba(255, 255, 255, 0.035)',
+                      borderColor: 'rgba(255, 255, 255, 0.1)',
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 12px 24px rgba(0, 0, 0, 0.25)',
+
+                      // Highlight menu button on card hover
+                      '& .menu-button': {
+                        opacity: 1,
+                      },
+                    },
+                  }}
+                >
+                  {/* Slightly vary internal spacing for organic feel */}
+                  <CardContent sx={{ p: 2.5, pb: index % 2 === 0 ? 2.5 : 2.75, '&:last-child': { pb: index % 2 === 0 ? 2.5 : 2.75 } }}>
+
+                    {/* Header - Service name as primary focus */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Avatar
+                          src={subscription.subscriptionLogo}
                           sx={{
-                            height: 20,
-                            fontSize: '0.7rem',
-                            bgcolor: 'rgba(102, 126, 234, 0.1)',
-                            color: 'primary.main',
+                            width: 44,
+                            height: 44,
+                            bgcolor: 'rgba(99, 102, 241, 0.12)',
+                            fontSize: '1.1rem',
                           }}
-                        />
+                        >
+                          {getCategoryIcon(subscription.category)}
+                        </Avatar>
+                        <Box>
+                          {/* Primary focus: Service name */}
+                          <Typography
+                            variant="subtitle1"
+                            fontWeight={600}
+                            sx={{
+                              color: '#fff',
+                              lineHeight: 1.3,
+                              mb: 0.5,
+                            }}
+                          >
+                            {subscription.subscriptionName}
+                          </Typography>
+
+                          {/* Category pill - softer, desaturated */}
+                          <Chip
+                            label={subscription.category}
+                            size="small"
+                            sx={{
+                              height: 20,
+                              fontSize: '0.65rem',
+                              fontWeight: 500,
+                              bgcolor: categoryStyle.bg,
+                              color: categoryStyle.color,
+                              border: 'none',
+                              '& .MuiChip-label': { px: 1 },
+                            }}
+                          />
+                        </Box>
+                      </Box>
+
+                      {/* Menu button - subtle background on hover */}
+                      <IconButton
+                        className="menu-button"
+                        size="small"
+                        onClick={(e) => handleMenuOpen(e, subscription)}
+                        sx={{
+                          opacity: 0.5,
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            opacity: 1,
+                            bgcolor: 'rgba(255, 255, 255, 0.08)',
+                          },
+                        }}
+                      >
+                        <MoreVert fontSize="small" />
+                      </IconButton>
+                    </Box>
+
+                    {/* Price Section - Neutral color, emphasis via size/weight */}
+                    <Box sx={{ mb: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                        {/* Price - prominent via size, not color */}
+                        <Typography
+                          variant="h5"
+                          fontWeight={700}
+                          sx={{ color: 'rgba(255, 255, 255, 0.9)' }} // Neutral, not red
+                        >
+                          {formatCurrency(subscription.customPrice || subscription.originalPrice)}
+                        </Typography>
+
+                        {/* Frequency - de-emphasized */}
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: 'rgba(255, 255, 255, 0.35)', // Lower opacity
+                            fontSize: '0.7rem',
+                            textTransform: 'lowercase',
+                          }}
+                        >
+                          /{subscription.subscriptionType === 'YEARLY' ? 'year' : 'mo'}
+                        </Typography>
                       </Box>
                     </Box>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => handleMenuOpen(e, subscription)}
+
+                    {/* Renewal Section - Soft visual separation */}
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        pt: 2,
+                        mt: 1,
+                        // Soft separator instead of strong border
+                        borderTop: '1px solid rgba(255, 255, 255, 0.04)',
+                      }}
                     >
-                      <MoreVert />
-                    </IconButton>
-                  </Box>
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: 'rgba(255, 255, 255, 0.35)',
+                            fontSize: '0.7rem',
+                          }}
+                        >
+                          Renews
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: 'rgba(255, 255, 255, 0.75)',
+                            fontWeight: 500,
+                          }}
+                        >
+                          {formatDate(subscription.renewalDate)}
+                        </Typography>
+                      </Box>
 
-                  {/* Price */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      {subscription.subscriptionType}
-                    </Typography>
-                    <Typography variant="h5" fontWeight={700} color="primary.main">
-                      {formatCurrency(subscription.customPrice || subscription.originalPrice)}
-                    </Typography>
-                  </Box>
-
-                  {/* Renewal Info */}
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      pt: 2,
-                      borderTop: '1px solid',
-                      borderColor: 'divider',
-                    }}
-                  >
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Renewal Date
-                      </Typography>
-                      <Typography variant="body2" fontWeight={500}>
-                        {formatDate(subscription.renewalDate)}
-                      </Typography>
+                      {/* Days badge - subtle, red only for urgent */}
+                      <Chip
+                        label={renewalStyle.label}
+                        size="small"
+                        sx={{
+                          height: 24,
+                          fontSize: '0.7rem',
+                          fontWeight: 600,
+                          bgcolor: renewalStyle.bg,
+                          color: renewalStyle.color,
+                          border: 'none',
+                        }}
+                      />
                     </Box>
-                    <Chip
-                      label={
-                        subscription.daysUntilRenewal !== null
-                          ? subscription.daysUntilRenewal <= 0
-                            ? 'Due Today'
-                            : `${subscription.daysUntilRenewal} days`
-                          : 'N/A'
-                      }
-                      size="small"
-                      color={getStatusColor(subscription.daysUntilRenewal)}
-                      sx={{ fontWeight: 600 }}
-                    />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
+                  </CardContent>
+                </Card>
+              </Grid>
+            );
+          })}
         </Grid>
       )}
 
-      {/* Actions Menu */}
+      {/* Actions Menu - Subtle styling */}
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        PaperProps={{
+          sx: {
+            bgcolor: '#1a1a1a',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: 2,
+            minWidth: 160,
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+          },
+        }}
       >
         <MenuItem
           onClick={() => {
             navigate(`/subscriptions/${selectedSubscription?.id}`);
             handleMenuClose();
           }}
+          sx={{
+            py: 1.25,
+            '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.04)' },
+          }}
         >
-          <Visibility sx={{ mr: 1 }} fontSize="small" />
-          View Details
+          <Visibility sx={{ mr: 1.5, fontSize: 18, color: 'rgba(255,255,255,0.6)' }} />
+          <Typography variant="body2">View Details</Typography>
         </MenuItem>
         <MenuItem
           onClick={() => {
             navigate(`/subscriptions/${selectedSubscription?.id}/edit`);
             handleMenuClose();
           }}
+          sx={{
+            py: 1.25,
+            '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.04)' },
+          }}
         >
-          <Edit sx={{ mr: 1 }} fontSize="small" />
-          Edit
+          <Edit sx={{ mr: 1.5, fontSize: 18, color: 'rgba(255,255,255,0.6)' }} />
+          <Typography variant="body2">Edit</Typography>
         </MenuItem>
         <MenuItem
           onClick={() => {
             setDeleteDialogOpen(true);
             handleMenuClose();
           }}
-          sx={{ color: 'error.main' }}
+          sx={{
+            py: 1.25,
+            color: '#ef4444',
+            '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.08)' },
+          }}
         >
-          <Delete sx={{ mr: 1 }} fontSize="small" />
-          Delete
+          <Delete sx={{ mr: 1.5, fontSize: 18 }} />
+          <Typography variant="body2">Delete</Typography>
         </MenuItem>
       </Menu>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Delete Subscription</DialogTitle>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        PaperProps={{
+          sx: {
+            bgcolor: '#1a1a1a',
+            borderRadius: 3,
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+          },
+        }}
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          <Typography variant="h6" fontWeight={600}>Delete Subscription</Typography>
+        </DialogTitle>
         <DialogContent>
-          <Typography>
+          <Typography sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
             Are you sure you want to delete "{selectedSubscription?.subscriptionName}"?
             This action cannot be undone.
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleDelete} color="error" variant="contained">
+        <DialogActions sx={{ p: 2.5, pt: 1.5 }}>
+          <Button
+            onClick={() => setDeleteDialogOpen(false)}
+            sx={{
+              color: 'rgba(255, 255, 255, 0.6)',
+              '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.04)' },
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDelete}
+            variant="contained"
+            sx={{
+              bgcolor: '#ef4444',
+              '&:hover': { bgcolor: '#dc2626' },
+              '&:active': { transform: 'scale(0.98)' },
+            }}
+          >
             Delete
           </Button>
         </DialogActions>

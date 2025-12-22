@@ -9,6 +9,11 @@ public class WatchlistRequest {
     @NotNull(message = "Subscription ID is required")
     private Long subscriptionId;
 
+    // Optional plan selection
+    private Long planId;
+    private String planName;
+    private Double planPrice;
+
     private Double targetPrice;
     private Boolean notifyOnPriceDrop;
     private String notes;

@@ -58,11 +58,27 @@ public class UserSubscriptionService {
         User user = authService.getCurrentUser();
         Subscription subscription = subscriptionService.getSubscriptionEntityById(request.getSubscriptionId());
 
-        // Check if user already has this subscription
+        // Check if user already has this subscription (active ones only)
         UserSubscription existing = userSubscriptionRepository.findByUserIdAndSubscriptionId(
                 user.getId(), subscription.getId());
-        if (existing != null && existing.getIsActive()) {
-            throw new BadRequestException("You already have this subscription active");
+
+        // Handle existing active subscription
+        if (existing != null) {
+            // If forceAdd is not set or is false, throw error with existing details
+            if (request.getForceAdd() == null || !request.getForceAdd()) {
+                throw new BadRequestException("DUPLICATE_SUBSCRIPTION:" + existing.getId() + ":" +
+                        existing.getRenewalDate() + ":" + existing.getSubscriptionType());
+            }
+
+            // If continueFromExisting is true, use the existing subscription's renewal date
+            // as start date
+            if (request.getContinueFromExisting() != null && request.getContinueFromExisting()) {
+                request.setStartDate(existing.getRenewalDate());
+            }
+
+            // Deactivate the existing subscription
+            existing.setIsActive(false);
+            userSubscriptionRepository.save(existing);
         }
 
         // Calculate renewal date if not provided

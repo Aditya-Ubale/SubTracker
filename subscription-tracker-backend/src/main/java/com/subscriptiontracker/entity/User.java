@@ -52,6 +52,9 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "last_login")
+    private LocalDateTime lastLogin;
+
     // Relationship: One user can have many subscriptions
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserSubscription> subscriptions = new ArrayList<>();

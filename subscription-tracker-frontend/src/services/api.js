@@ -14,7 +14,14 @@ const api = axios.create({
 // Request interceptor - Add JWT token to requests
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    // Check if this is an admin route
+    const isAdminRoute = config.url?.includes('/admin/');
+
+    // Use admin token for admin routes, otherwise use regular token
+    const token = isAdminRoute
+      ? localStorage.getItem('adminToken')
+      : localStorage.getItem('token');
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -29,11 +36,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Don't redirect on 401 for auth endpoints (login, signup, etc.)
+    // Don't redirect on 401 for auth endpoints or admin endpoints
     const isAuthEndpoint = error.config?.url?.includes('/auth/');
+    const isAdminEndpoint = error.config?.url?.includes('/admin/');
 
-    if (error.response?.status === 401 && !isAuthEndpoint) {
-      // Token expired or invalid - only clear and redirect for protected routes
+    if (error.response?.status === 401 && !isAuthEndpoint && !isAdminEndpoint) {
+      // Token expired or invalid - only clear and redirect for protected user routes
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
@@ -100,6 +108,42 @@ export const alertAPI = {
 // ==================== EXPORT APIs ====================
 export const exportAPI = {
   exportPdf: () => api.get('/export/pdf', { responseType: 'blob' }),
+};
+
+// ==================== ADMIN APIs ====================
+export const adminAPI = {
+  login: (credentials) => api.post('/admin/login', credentials),
+  getDashboard: () => api.get('/admin/dashboard'),
+  getUsers: () => api.get('/admin/users'),
+  initializeAdmin: () => api.post('/admin/init'),
+  triggerScraping: () => api.post('/admin/scrape-prices'),
+  checkRenewals: () => api.post('/admin/check-renewals'),
+};
+
+// ==================== PAYMENT APIs ====================
+export const paymentAPI = {
+  // Initiate a new payment
+  initiatePayment: (data) => api.post('/payments/initiate', data),
+  // Process payment with card/UPI details
+  processPayment: (data) => api.post('/payments/process', data),
+  // Get payment status
+  getPaymentStatus: (transactionId) => api.get(`/payments/status/${transactionId}`),
+  // Get payment history
+  getPaymentHistory: () => api.get('/payments/history'),
+  // Cancel a pending payment
+  cancelPayment: (transactionId) => api.post(`/payments/cancel/${transactionId}`),
+  // Add free subscription (price = 0)
+  addFreeSubscription: (data) => api.post('/payments/add-free', data),
+};
+
+// ==================== STRIPE APIs ====================
+export const stripeAPI = {
+  // Create Stripe Checkout Session
+  createCheckoutSession: (data) => api.post('/stripe/create-checkout-session', data),
+  // Verify payment after completion
+  verifyPayment: (data) => api.post('/stripe/verify', data),
+  // Handle payment cancellation
+  handleCancel: (data) => api.post('/stripe/cancel', data),
 };
 
 export default api;

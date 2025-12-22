@@ -24,74 +24,87 @@ import Wishlist from './components/watchlist/Watchlist';
 import Budget from './components/budget/Budget';
 import Alerts from './components/alerts/Alerts';
 import Comparison from './components/comparison/Comparison';
+import Settings from './components/settings/Settings';
+import Help from './components/help/Help';
 
-// Netflix-inspired Dark Theme
+// Admin Components
+import AdminLogin from './components/admin/AdminLogin';
+import AdminDashboard from './components/admin/AdminDashboard';
+
+// Payment Components
+import PaymentPage from './components/payment/PaymentPage';
+import PaymentSuccess from './components/payment/PaymentSuccess';
+import PaymentCancel from './components/payment/PaymentCancel';
+
+// Landing Page
+import LandingPage from './components/landing/LandingPage';
+
+/**
+ * Modern Fintech Theme
+ * 
+ * Inspired by Linear, Vercel, Stripe, Notion
+ * - Soft dark (not harsh black)
+ * - Indigo primary accent
+ * - Clean typography
+ * - Subtle borders and shadows
+ */
 const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#E50914',
-      light: '#FF3D47',
-      dark: '#B81D24',
+      main: '#6366f1',
+      light: '#818cf8',
+      dark: '#4f46e5',
     },
     secondary: {
-      main: '#564D4D',
-      light: '#6D6262',
-      dark: '#3D3636',
+      main: '#71717a',
+      light: '#a1a1aa',
+      dark: '#52525b',
     },
     success: {
-      main: '#4CAF50',
-      light: '#6FBF73',
-      dark: '#3B873E',
+      main: '#22c55e',
+      light: '#4ade80',
+      dark: '#16a34a',
     },
     warning: {
-      main: '#FF8C42',
-      light: '#FFB74D',
-      dark: '#F57C00',
+      main: '#f59e0b',
+      light: '#fbbf24',
+      dark: '#d97706',
     },
     error: {
-      main: '#E50914',
-      light: '#FF3D47',
-      dark: '#B81D24',
+      main: '#ef4444',
+      light: '#f87171',
+      dark: '#dc2626',
     },
     background: {
-      default: '#141414',
-      paper: '#221F1F',
+      default: '#0f0f12',
+      paper: '#16161a',
     },
     text: {
-      primary: '#FFFFFF',
-      secondary: '#E5E5E5',
-      disabled: '#666666',
+      primary: '#fafafa',
+      secondary: '#a1a1aa',
+      disabled: '#52525b',
     },
-    divider: '#333333',
+    divider: 'rgba(255, 255, 255, 0.06)',
     action: {
-      hover: 'rgba(229, 9, 20, 0.08)',
-      selected: 'rgba(229, 9, 20, 0.16)',
+      hover: 'rgba(99, 102, 241, 0.08)',
+      selected: 'rgba(99, 102, 241, 0.16)',
     },
   },
   typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-    h4: {
-      fontWeight: 700,
-      color: '#FFFFFF',
-    },
-    h5: {
-      fontWeight: 600,
-      color: '#FFFFFF',
-    },
-    h6: {
-      fontWeight: 600,
-      color: '#FFFFFF',
-    },
-    body1: {
-      color: '#E5E5E5',
-    },
-    body2: {
-      color: '#E5E5E5',
-    },
+    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    h1: { fontWeight: 600, letterSpacing: '-0.02em' },
+    h2: { fontWeight: 600, letterSpacing: '-0.02em' },
+    h3: { fontWeight: 600, letterSpacing: '-0.01em' },
+    h4: { fontWeight: 600, letterSpacing: '-0.01em' },
+    h5: { fontWeight: 600 },
+    h6: { fontWeight: 600 },
+    body1: { fontSize: '0.9375rem' },
+    body2: { fontSize: '0.875rem' },
+    button: { fontWeight: 500, textTransform: 'none' },
   },
   shape: {
-    borderRadius: 8,
+    borderRadius: 12,
   },
   components: {
     MuiCssBaseline: {
@@ -99,21 +112,21 @@ const theme = createTheme({
         'html, body, #root': {
           overflowX: 'hidden',
           maxWidth: '100vw',
-          backgroundColor: '#141414',
+          backgroundColor: '#0f0f12',
         },
         '::-webkit-scrollbar': {
-          width: '8px',
-          height: '8px',
+          width: '6px',
+          height: '6px',
         },
         '::-webkit-scrollbar-track': {
-          background: '#141414',
+          background: 'transparent',
         },
         '::-webkit-scrollbar-thumb': {
-          background: '#333333',
-          borderRadius: '4px',
+          background: 'rgba(255, 255, 255, 0.1)',
+          borderRadius: '3px',
         },
         '::-webkit-scrollbar-thumb:hover': {
-          background: '#444444',
+          background: 'rgba(255, 255, 255, 0.15)',
         },
       },
     },
@@ -121,28 +134,28 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           textTransform: 'none',
-          borderRadius: 4,
-          fontWeight: 600,
+          borderRadius: 8,
+          fontWeight: 500,
+          fontSize: '0.875rem',
         },
         contained: {
-          backgroundColor: '#E50914',
-          color: '#FFFFFF',
+          backgroundColor: '#6366f1',
+          boxShadow: '0 2px 8px rgba(99, 102, 241, 0.25)',
           '&:hover': {
-            backgroundColor: '#B81D24',
+            backgroundColor: '#4f46e5',
+            boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
           },
         },
         outlined: {
-          borderColor: '#333333',
-          color: '#FFFFFF',
+          borderColor: 'rgba(255, 255, 255, 0.1)',
           '&:hover': {
-            borderColor: '#E50914',
-            backgroundColor: 'rgba(229, 9, 20, 0.08)',
+            borderColor: 'rgba(255, 255, 255, 0.2)',
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
           },
         },
         text: {
-          color: '#FFFFFF',
           '&:hover': {
-            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
           },
         },
       },
@@ -153,15 +166,11 @@ const theme = createTheme({
       },
       styleOverrides: {
         root: {
-          backgroundColor: '#221F1F !important',
-          backgroundImage: 'none !important',
-          borderRadius: 8,
-          border: '1px solid #333333',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)',
-          transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
-          '&:hover': {
-            borderColor: '#444444',
-          },
+          backgroundColor: 'rgba(22, 22, 26, 0.8)',
+          backgroundImage: 'none',
+          borderRadius: 12,
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          transition: 'all 0.15s ease',
         },
       },
     },
@@ -178,27 +187,8 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           fontWeight: 500,
-          backgroundColor: '#333333',
-          color: '#FFFFFF',
-        },
-        colorPrimary: {
-          backgroundColor: '#E50914',
-          color: '#FFFFFF',
-        },
-        colorSuccess: {
-          backgroundColor: '#4CAF50',
-          color: '#FFFFFF',
-        },
-        colorWarning: {
-          backgroundColor: '#FF8C42',
-          color: '#000000',
-        },
-        colorError: {
-          backgroundColor: '#E50914',
-          color: '#FFFFFF',
-        },
-        outlined: {
-          borderColor: '#333333',
+          fontSize: '0.75rem',
+          borderRadius: 6,
         },
       },
     },
@@ -206,30 +196,17 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           '& .MuiOutlinedInput-root': {
-            backgroundColor: 'rgba(51, 51, 51, 0.5)',
+            backgroundColor: 'rgba(255, 255, 255, 0.03)',
             '& fieldset': {
-              borderColor: '#333333',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
             },
             '&:hover fieldset': {
-              borderColor: '#666666',
+              borderColor: 'rgba(255, 255, 255, 0.12)',
             },
             '&.Mui-focused fieldset': {
-              borderColor: '#E50914',
+              borderColor: '#6366f1',
             },
           },
-          '& .MuiInputLabel-root': {
-            color: '#666666',
-          },
-          '& .MuiInputLabel-root.Mui-focused': {
-            color: '#E50914',
-          },
-        },
-      },
-    },
-    MuiSelect: {
-      styleOverrides: {
-        root: {
-          backgroundColor: 'rgba(51, 51, 51, 0.5)',
         },
       },
     },
@@ -239,36 +216,38 @@ const theme = createTheme({
       },
       styleOverrides: {
         root: {
-          backgroundColor: '#221F1F !important',
-          backgroundImage: 'none !important',
+          backgroundColor: '#16161a',
+          backgroundImage: 'none',
         },
       },
     },
     MuiDialog: {
       styleOverrides: {
         paper: {
-          backgroundColor: '#221F1F',
-          border: '1px solid #333333',
+          backgroundColor: '#1c1c21',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: 16,
         },
       },
     },
     MuiDivider: {
       styleOverrides: {
         root: {
-          borderColor: '#333333',
+          borderColor: 'rgba(255, 255, 255, 0.06)',
         },
       },
     },
     MuiListItemButton: {
       styleOverrides: {
         root: {
+          borderRadius: 8,
           '&:hover': {
-            backgroundColor: 'rgba(229, 9, 20, 0.08)',
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
           },
           '&.Mui-selected': {
-            backgroundColor: 'rgba(229, 9, 20, 0.16)',
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
             '&:hover': {
-              backgroundColor: 'rgba(229, 9, 20, 0.24)',
+              backgroundColor: 'rgba(99, 102, 241, 0.15)',
             },
           },
         },
@@ -277,71 +256,56 @@ const theme = createTheme({
     MuiAvatar: {
       styleOverrides: {
         root: {
-          backgroundColor: '#E50914',
-          color: '#FFFFFF',
+          backgroundColor: 'rgba(99, 102, 241, 0.15)',
+          color: '#6366f1',
         },
       },
     },
     MuiLinearProgress: {
       styleOverrides: {
         root: {
-          backgroundColor: '#333333',
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          borderRadius: 4,
         },
         bar: {
-          backgroundColor: '#E50914',
+          backgroundColor: '#6366f1',
+          borderRadius: 4,
         },
       },
     },
     MuiSkeleton: {
       styleOverrides: {
         root: {
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        },
+      },
+    },
+    MuiTooltip: {
+      styleOverrides: {
+        tooltip: {
+          backgroundColor: '#1c1c21',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          fontSize: '0.75rem',
+          padding: '6px 12px',
+          borderRadius: 6,
+        },
+        arrow: {
+          color: '#1c1c21',
         },
       },
     },
     MuiAlert: {
       styleOverrides: {
         root: {
-          backgroundColor: '#221F1F',
-          border: '1px solid #333333',
-        },
-        standardSuccess: {
-          borderColor: '#4CAF50',
-          '& .MuiAlert-icon': {
-            color: '#4CAF50',
-          },
-        },
-        standardWarning: {
-          borderColor: '#FF8C42',
-          '& .MuiAlert-icon': {
-            color: '#FF8C42',
-          },
-        },
-        standardError: {
-          borderColor: '#E50914',
-          '& .MuiAlert-icon': {
-            color: '#E50914',
-          },
+          borderRadius: 8,
         },
       },
     },
-    MuiTableCell: {
-      styleOverrides: {
-        root: {
-          borderColor: '#333333',
-        },
-        head: {
-          backgroundColor: '#1A1A1A',
-          color: '#FFFFFF',
-          fontWeight: 600,
-        },
-      },
-    },
-    MuiTableRow: {
+    MuiIconButton: {
       styleOverrides: {
         root: {
           '&:hover': {
-            backgroundColor: 'rgba(255, 255, 255, 0.04)',
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
           },
         },
       },
@@ -349,39 +313,13 @@ const theme = createTheme({
     MuiMenuItem: {
       styleOverrides: {
         root: {
-          color: '#FFFFFF',
+          borderRadius: 6,
+          margin: '2px 4px',
           '&:hover': {
-            backgroundColor: 'rgba(229, 9, 20, 0.15)',
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
           },
           '&.Mui-selected': {
-            backgroundColor: 'rgba(229, 9, 20, 0.25)',
-            '&:hover': {
-              backgroundColor: 'rgba(229, 9, 20, 0.35)',
-            },
-          },
-        },
-      },
-    },
-    MuiInputBase: {
-      styleOverrides: {
-        root: {
-          color: '#FFFFFF',
-        },
-        input: {
-          color: '#FFFFFF',
-          '&::placeholder': {
-            color: '#666666',
-            opacity: 1,
-          },
-        },
-      },
-    },
-    MuiIconButton: {
-      styleOverrides: {
-        root: {
-          color: '#FFFFFF',
-          '&:hover': {
-            backgroundColor: 'rgba(229, 9, 20, 0.15)',
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
           },
         },
       },
@@ -395,7 +333,7 @@ const AuthenticatedLayout = ({ children }) => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', overflow: 'hidden', backgroundColor: '#141414' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', overflow: 'hidden', backgroundColor: '#0f0f12' }}>
       <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
       <Sidebar
         open={sidebarOpen}
@@ -410,7 +348,7 @@ const AuthenticatedLayout = ({ children }) => {
           width: '100%',
           maxWidth: '100%',
           minHeight: '100vh',
-          backgroundColor: '#141414',
+          backgroundColor: '#0f0f12',
           overflowX: 'hidden',
         }}
       >
@@ -524,10 +462,68 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <AuthenticatedLayout>
+                    <Settings />
+                  </AuthenticatedLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/help"
+              element={
+                <ProtectedRoute>
+                  <AuthenticatedLayout>
+                    <Help />
+                  </AuthenticatedLayout>
+                </ProtectedRoute>
+              }
+            />
 
-            {/* Default Route */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            {/* Payment Routes */}
+            <Route
+              path="/payment"
+              element={
+                <ProtectedRoute>
+                  <AuthenticatedLayout>
+                    <PaymentPage />
+                  </AuthenticatedLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment/success"
+              element={
+                <ProtectedRoute>
+                  <AuthenticatedLayout>
+                    <PaymentSuccess />
+                  </AuthenticatedLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment/cancel"
+              element={
+                <ProtectedRoute>
+                  <AuthenticatedLayout>
+                    <PaymentCancel />
+                  </AuthenticatedLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Admin Routes */}
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+
+            {/* Landing Page */}
+            <Route path="/" element={<LandingPage />} />
+
+            {/* Catch all */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>
         <ToastContainer
@@ -535,9 +531,10 @@ function App() {
           autoClose={3000}
           theme="dark"
           toastStyle={{
-            backgroundColor: '#221F1F',
-            border: '1px solid #333333',
-            color: '#FFFFFF',
+            backgroundColor: '#1c1c21',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            color: '#fafafa',
+            borderRadius: 8,
           }}
         />
       </AuthProvider>

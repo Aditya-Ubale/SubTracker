@@ -26,12 +26,19 @@ export const AuthProvider = ({ children }) => {
         setToken(savedToken);
         setUser(JSON.parse(savedUser));
 
-        // Verify token is still valid
+        // Verify token is still valid with timeout
         try {
-          const response = await authAPI.getCurrentUser();
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Auth timeout')), 5000)
+          );
+          const response = await Promise.race([
+            authAPI.getCurrentUser(),
+            timeoutPromise
+          ]);
           setUser(response.data.data);
         } catch (error) {
-          // Token invalid, clear storage
+          // Token invalid or timeout, clear storage
+          console.log('Auth verification failed:', error.message);
           logout();
         }
       }

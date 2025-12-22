@@ -26,10 +26,23 @@ public class DataInitializerService implements CommandLineRunner {
         @Autowired
         private PriceScraperService priceScraperService;
 
+        @Autowired
+        private AdminService adminService;
+
         @Override
         public void run(String... args) throws Exception {
                 initializeSubscriptions();
                 checkAndTriggerScraping();
+                initializeAdmin(); // Initialize default admin
+        }
+
+        private void initializeAdmin() {
+                try {
+                        adminService.createDefaultAdmin();
+                        logger.info("Default admin account initialized.");
+                } catch (Exception e) {
+                        logger.warn("Failed to initialize admin account: {}", e.getMessage());
+                }
         }
 
         private void checkAndTriggerScraping() {
@@ -93,15 +106,15 @@ public class DataInitializerService implements CommandLineRunner {
                                                 .build(),
 
                                 Subscription.builder()
-                                                .name("Hotstar")
-                                                .description("Disney+ Hotstar - Stream movies, TV shows, live cricket & more.")
-                                                .logoUrl("https://www.hotstar.com/favicon.ico")
-                                                .websiteUrl("https://www.hotstar.com/in/subscribe")
+                                                .name("JioHotstar")
+                                                .description("JioHotstar - Stream movies, TV shows, live sports & Disney+ content.")
+                                                .logoUrl("https://www.jiohotstar.com/favicon.ico")
+                                                .websiteUrl("https://www.jiohotstar.com/subscribe")
                                                 .category("Streaming")
-                                                .priceMonthly(299.0)
+                                                .priceMonthly(149.0)
                                                 .priceYearly(1499.0)
                                                 .currency("INR")
-                                                .features("Disney content, Hotstar Specials, Live Sports, Marvel, Star Wars")
+                                                .features("Disney+ content, Live Sports, HBO Originals, Peacock content, 4K streaming")
                                                 .maxDevices(4)
                                                 .streamingQuality("4K UHD")
                                                 .build(),

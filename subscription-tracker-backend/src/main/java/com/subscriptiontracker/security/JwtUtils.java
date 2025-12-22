@@ -37,6 +37,13 @@ public class JwtUtils {
         return createToken(claims, userDetails.getUsername());
     }
 
+    // Generate JWT token with role (for admin)
+    public String generateTokenWithRole(String email, String role) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", role);
+        return createToken(claims, email);
+    }
+
     // Create JWT token
     private String createToken(Map<String, Object> claims, String subject) {
         return Jwts.builder()
@@ -73,10 +80,20 @@ public class JwtUtils {
     // Extract all claims from token
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
-                .setSigningKey(getSigningKey())  // use SecretKey for HS256
+                .setSigningKey(getSigningKey()) // use SecretKey for HS256
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+    }
+
+    // Extract role from token (for admin authentication)
+    public String extractRole(String token) {
+        try {
+            Claims claims = extractAllClaims(token);
+            return (String) claims.get("role");
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     // Check if token is expired
@@ -94,7 +111,7 @@ public class JwtUtils {
     public boolean validateJwtToken(String authToken) {
         try {
             Jwts.parser()
-                    .setSigningKey(getSigningKey())  // use SecretKey
+                    .setSigningKey(getSigningKey()) // use SecretKey
                     .build()
                     .parseClaimsJws(authToken);
             return true;

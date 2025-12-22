@@ -23,6 +23,10 @@ import {
   Paper,
   Skeleton,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -63,6 +67,11 @@ const AddSubscription = () => {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [subscriptionPlans, setSubscriptionPlans] = useState([]);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+
+  // Duplicate subscription dialog state
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [existingSubscriptionInfo, setExistingSubscriptionInfo] = useState(null);
+
   const [formData, setFormData] = useState({
     subscriptionId: null,
     planId: null,
@@ -176,7 +185,7 @@ const AddSubscription = () => {
     setActiveStep((prev) => prev - 1);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (forceAdd = false, continueFromExisting = false) => {
     try {
       setLoading(true);
       const payload = {
@@ -189,14 +198,45 @@ const AddSubscription = () => {
         autoRenew: formData.autoRenew,
         reminderDaysBefore: formData.reminderDaysBefore,
         notes: formData.notes,
+        forceAdd: forceAdd,
+        continueFromExisting: continueFromExisting,
       };
       await subscriptionAPI.addSubscription(payload);
+      setShowDuplicateDialog(false);
       setShowSuccessPopup(true);
     } catch (error) {
       console.error('Error adding subscription:', error);
-      toast.error(error.response?.data?.message || 'Failed to add subscription');
+      const errorMessage = error.response?.data?.message || '';
+
+      // Check if this is a duplicate subscription error
+      if (errorMessage.startsWith('DUPLICATE_SUBSCRIPTION:')) {
+        const parts = errorMessage.split(':');
+        const existingId = parts[1];
+        const renewalDate = parts[2];
+        const subscriptionType = parts[3];
+
+        setExistingSubscriptionInfo({
+          id: existingId,
+          renewalDate: renewalDate,
+          subscriptionType: subscriptionType,
+        });
+        setShowDuplicateDialog(true);
+      } else {
+        toast.error(errorMessage || 'Failed to add subscription');
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Handle duplicate subscription choice
+  const handleDuplicateChoice = (choice) => {
+    if (choice === 'continue') {
+      // Continue from existing subscription's renewal date
+      handleSubmit(true, true);
+    } else if (choice === 'new') {
+      // Add with a new start date (current formData.startDate)
+      handleSubmit(true, false);
     }
   };
 
@@ -762,7 +802,7 @@ const AddSubscription = () => {
             {activeStep === steps.length - 1 ? (
               <Button
                 variant="contained"
-                onClick={handleSubmit}
+                onClick={() => handleSubmit()}
                 disabled={loading}
                 sx={{ bgcolor: '#E50914', '&:hover': { bgcolor: '#B81D24' } }}
               >
@@ -789,6 +829,118 @@ const AddSubscription = () => {
         message={`${selectedSubscription?.name}${selectedPlan ? ` (${selectedPlan.planName})` : ''} has been added to your subscriptions.`}
         icon="check"
       />
+
+      {/* Duplicate Subscription Dialog */}
+      <Dialog
+        open={showDuplicateDialog}
+        onClose={() => setShowDuplicateDialog(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: '#1a1a1a',
+            border: '1px solid #333',
+            borderRadius: 3,
+          }
+        }}
+      >
+        <DialogTitle sx={{ color: '#fff', borderBottom: '1px solid #333' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Avatar src={selectedSubscription?.logoUrl} sx={{ width: 40, height: 40, bgcolor: '#333' }}>
+              {getCategoryIcon(selectedSubscription?.category)}
+            </Avatar>
+            <Box>
+              <Typography variant="h6" fontWeight={700}>Subscription Already Exists</Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                You already have {selectedSubscription?.name} active
+              </Typography>
+            </Box>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ py: 3 }}>
+          <Typography variant="body1" sx={{ color: '#fff', mb: 3 }}>
+            Your current {selectedSubscription?.name} subscription renews on{' '}
+            <Chip
+              label={existingSubscriptionInfo?.renewalDate}
+              size="small"
+              sx={{ bgcolor: '#E50914', color: '#fff', fontWeight: 600 }}
+            />
+          </Typography>
+
+          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 3 }}>
+            How would you like to proceed?
+          </Typography>
+
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <Card
+                sx={{
+                  cursor: 'pointer',
+                  bgcolor: 'rgba(76, 175, 80, 0.1)',
+                  border: '2px solid rgba(76, 175, 80, 0.5)',
+                  borderRadius: 2,
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    bgcolor: 'rgba(76, 175, 80, 0.2)',
+                    borderColor: '#4CAF50',
+                    transform: 'translateY(-2px)',
+                  },
+                }}
+                onClick={() => handleDuplicateChoice('continue')}
+              >
+                <CardContent sx={{ py: 2 }}>
+                  <Typography variant="subtitle1" fontWeight={700} sx={{ color: '#4CAF50', mb: 1 }}>
+                    📅 Continue from Renewal Date
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                    Start the new subscription from <strong style={{ color: '#fff' }}>{existingSubscriptionInfo?.renewalDate}</strong>.
+                    This is recommended for renewals to maintain continuity.
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12}>
+              <Card
+                sx={{
+                  cursor: 'pointer',
+                  bgcolor: 'rgba(33, 150, 243, 0.1)',
+                  border: '2px solid rgba(33, 150, 243, 0.5)',
+                  borderRadius: 2,
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    bgcolor: 'rgba(33, 150, 243, 0.2)',
+                    borderColor: '#2196F3',
+                    transform: 'translateY(-2px)',
+                  },
+                }}
+                onClick={() => handleDuplicateChoice('new')}
+              >
+                <CardContent sx={{ py: 2 }}>
+                  <Typography variant="subtitle1" fontWeight={700} sx={{ color: '#2196F3', mb: 1 }}>
+                    🆕 Start Fresh with New Date
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                    Use the date you selected: <strong style={{ color: '#fff' }}>{formData.startDate?.toLocaleDateString()}</strong>.
+                    Choose this if you're tracking a different billing cycle.
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
+          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', mt: 2, display: 'block' }}>
+            ⚠️ The existing subscription will be marked as inactive and the new one will be added.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ borderTop: '1px solid #333', p: 2 }}>
+          <Button
+            onClick={() => setShowDuplicateDialog(false)}
+            sx={{ color: '#fff', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}
+          >
+            Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
