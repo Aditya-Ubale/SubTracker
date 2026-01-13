@@ -6,6 +6,7 @@
  * - Smooth animations
  * - Clean iconography
  * - Hover tooltips when collapsed
+ * - No duplicate branding (branding in header only)
  */
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -81,7 +82,9 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const sidebarWidth = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED;
+  // On mobile, never collapse (use full drawer)
+  const isCollapsed = isMobile ? false : collapsed;
+  const sidebarWidth = isCollapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED;
 
   const handleLogout = () => {
     logout();
@@ -96,7 +99,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
   const isActive = (path) => location.pathname === path;
 
   // Navigation item component
-  const NavItem = ({ item, isBottom = false }) => {
+  const NavItem = ({ item }) => {
     const Icon = item.icon;
     const active = isActive(item.path);
 
@@ -105,10 +108,10 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
         onClick={() => handleNavigation(item.path)}
         sx={{
           py: 1,
-          px: collapsed ? 1.5 : 1.5,
+          px: isCollapsed ? 1.5 : 1.5,
           borderRadius: 2,
           minHeight: 40,
-          justifyContent: collapsed ? 'center' : 'flex-start',
+          justifyContent: isCollapsed ? 'center' : 'flex-start',
           position: 'relative',
           bgcolor: active ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
 
@@ -135,7 +138,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
       >
         <ListItemIcon
           sx={{
-            minWidth: collapsed ? 0 : 36,
+            minWidth: isCollapsed ? 0 : 36,
             justifyContent: 'center',
           }}
         >
@@ -147,7 +150,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
             }}
           />
         </ListItemIcon>
-        {!collapsed && (
+        {!isCollapsed && (
           <ListItemText
             primary={item.label}
             primaryTypographyProps={{
@@ -160,7 +163,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
       </ListItemButton>
     );
 
-    if (collapsed) {
+    if (isCollapsed) {
       return (
         <Tooltip title={item.label} placement="right" arrow>
           <ListItem disablePadding sx={{ mb: 0.5 }}>
@@ -181,129 +184,48 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
     <Box
       sx={{
         width: sidebarWidth,
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
+        minHeight: '100%',
         bgcolor: '#0f0f12',
         borderRight: '1px solid rgba(255, 255, 255, 0.06)',
         transition: 'width 0.2s ease',
-        overflow: 'hidden',
+        pt: isMobile ? 0 : 8,
       }}
     >
-      {/* Logo & Toggle */}
-      <Box
-        sx={{
-          px: collapsed ? 1.5 : 2,
-          py: 2,
-          mt: isMobile ? 0 : 7,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'space-between',
-        }}
-      >
-        {!collapsed && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box
+      {/* Collapse Toggle */}
+      {!isMobile && (
+        <Box
+          sx={{
+            px: isCollapsed ? 1.5 : 2,
+            py: 1.5,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: isCollapsed ? 'center' : 'flex-end',
+          }}
+        >
+          <Tooltip title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} placement="right">
+            <IconButton
+              size="small"
+              onClick={() => setCollapsed(!collapsed)}
               sx={{
-                width: 32,
-                height: 32,
-                borderRadius: 1.5,
-                bgcolor: 'rgba(99, 102, 241, 0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                color: 'rgba(255, 255, 255, 0.4)',
+                '&:hover': {
+                  bgcolor: 'rgba(255, 255, 255, 0.05)',
+                  color: 'rgba(255, 255, 255, 0.7)',
+                },
               }}
             >
-              <Typography
-                sx={{
-                  fontWeight: 700,
-                  fontSize: '0.875rem',
-                  color: '#6366f1',
-                }}
-              >
-                S
-              </Typography>
-            </Box>
-            <Typography
-              sx={{
-                fontWeight: 600,
-                color: '#fff',
-                fontSize: '0.9375rem',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              SubTracker
-            </Typography>
-          </Box>
-        )}
-
-        {collapsed && (
-          <Box
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: 2,
-              bgcolor: 'rgba(99, 102, 241, 0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Typography
-              sx={{
-                fontWeight: 700,
-                fontSize: '0.9375rem',
-                color: '#6366f1',
-              }}
-            >
-              S
-            </Typography>
-          </Box>
-        )}
-
-        {!isMobile && !collapsed && (
-          <IconButton
-            size="small"
-            onClick={() => setCollapsed(true)}
-            sx={{
-              color: 'rgba(255, 255, 255, 0.4)',
-              '&:hover': {
-                bgcolor: 'rgba(255, 255, 255, 0.05)',
-                color: 'rgba(255, 255, 255, 0.7)',
-              },
-            }}
-          >
-            <ChevronLeft sx={{ fontSize: 18 }} />
-          </IconButton>
-        )}
-      </Box>
-
-      {/* Expand button when collapsed */}
-      {!isMobile && collapsed && (
-        <Box sx={{ px: 1.5, mb: 1 }}>
-          <IconButton
-            size="small"
-            onClick={() => setCollapsed(false)}
-            sx={{
-              width: '100%',
-              color: 'rgba(255, 255, 255, 0.4)',
-              '&:hover': {
-                bgcolor: 'rgba(255, 255, 255, 0.05)',
-                color: 'rgba(255, 255, 255, 0.7)',
-              },
-            }}
-          >
-            <ChevronRight sx={{ fontSize: 18 }} />
-          </IconButton>
+              {isCollapsed ? <ChevronRight sx={{ fontSize: 18 }} /> : <ChevronLeft sx={{ fontSize: 18 }} />}
+            </IconButton>
+          </Tooltip>
         </Box>
       )}
 
       {/* Navigation */}
-      <Box sx={{ flex: 1, overflow: 'auto', px: 1.5, py: 1 }}>
+      <Box sx={{ px: 1.5, py: 1 }}>
         {NAV_SECTIONS.map((section, idx) => (
-          <Box key={section.id} sx={{ mb: 2 }}>
+          <Box key={section.id} sx={{ mb: idx === NAV_SECTIONS.length - 1 ? 0 : 2 }}>
             {/* Section label */}
-            {section.label && !collapsed && (
+            {section.label && !isCollapsed && (
               <Typography
                 sx={{
                   px: 1.5,
@@ -330,21 +252,20 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
       </Box>
 
       {/* Bottom Section */}
-      <Box sx={{ px: 1.5, pb: 2 }}>
+      <Box sx={{ px: 1.5, pb: 2, pt: 1 }}>
         {/* Divider */}
         <Box
           sx={{
             height: 1,
             bgcolor: 'rgba(255, 255, 255, 0.06)',
             mb: 1.5,
-            mx: collapsed ? 0 : 0,
           }}
         />
 
-        {/* Bottom Nav */}
+        {/* Bottom Nav - Settings & Help */}
         <List disablePadding>
           {BOTTOM_NAV.map((item) => (
-            <NavItem key={item.path} item={item} isBottom />
+            <NavItem key={item.path} item={item} />
           ))}
         </List>
 
@@ -352,23 +273,23 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
         <Box
           sx={{
             mt: 1.5,
-            p: collapsed ? 1 : 1.5,
+            p: isCollapsed ? 1 : 1.5,
             borderRadius: 2,
             bgcolor: 'rgba(255, 255, 255, 0.03)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: collapsed ? 'center' : 'flex-start',
-            gap: collapsed ? 0 : 1.5,
+            justifyContent: isCollapsed ? 'center' : 'flex-start',
+            gap: isCollapsed ? 0 : 1.5,
           }}
         >
-          <Tooltip title={collapsed ? user?.name : ''} placement="right">
+          <Tooltip title={isCollapsed ? user?.name : ''} placement="right">
             <Avatar
               sx={{
-                width: collapsed ? 36 : 32,
-                height: collapsed ? 36 : 32,
+                width: isCollapsed ? 36 : 32,
+                height: isCollapsed ? 36 : 32,
                 bgcolor: 'rgba(99, 102, 241, 0.15)',
                 color: '#6366f1',
-                fontSize: collapsed ? '0.875rem' : '0.75rem',
+                fontSize: isCollapsed ? '0.875rem' : '0.75rem',
                 fontWeight: 600,
                 cursor: 'pointer',
               }}
@@ -377,7 +298,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
             </Avatar>
           </Tooltip>
 
-          {!collapsed && (
+          {!isCollapsed && (
             <>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography
@@ -441,6 +362,8 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
           borderRight: 'none',
           bgcolor: 'transparent',
           transition: 'width 0.2s ease',
+          height: '100vh',
+          overflowY: 'auto',
         },
       }}
     >

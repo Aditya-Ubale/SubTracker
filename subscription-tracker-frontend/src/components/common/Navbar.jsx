@@ -56,6 +56,7 @@ const Navbar = ({ onMenuClick }) => {
           onClick={onMenuClick}
           sx={{
             mr: 2,
+            display: { xs: 'flex', md: 'none' },
             '&:hover': {
               backgroundColor: 'rgba(229, 9, 20, 0.1)',
             },

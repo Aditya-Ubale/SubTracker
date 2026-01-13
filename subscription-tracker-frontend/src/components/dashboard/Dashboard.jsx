@@ -41,6 +41,7 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { subscriptionAPI, budgetAPI, alertAPI } from '../../services/api';
 import { formatCurrency, formatDate, getCategoryIcon } from '../../utils/helpers';
+import { useAuth } from '../../context/AuthContext';
 import StatsCard from './StatsCard';
 import SuccessPopup from '../common/SuccessPopup';
 
@@ -54,6 +55,7 @@ const getGreeting = () => {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalSubscriptions: 0,
@@ -250,7 +252,7 @@ const Dashboard = () => {
               mb: 0.5,
             }}
           >
-            {getGreeting()} 👋
+            {getGreeting()}{user?.name ? `, ${user.name.split(' ')[0]}` : ''} 👋
           </Typography>
           <Typography sx={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.9375rem' }}>
             Here's your subscription overview for {format(new Date(), 'MMMM yyyy')}
@@ -330,9 +332,12 @@ const Dashboard = () => {
               borderRadius: 3,
               border: '1px solid rgba(255, 255, 255, 0.06)',
               mb: 3,
+              height: 460,
+              display: 'flex',
+              flexDirection: 'column',
             }}
           >
-            <CardContent sx={{ p: 0 }}>
+            <CardContent sx={{ p: 0, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               {/* Card Header */}
               <Box
                 sx={{
@@ -405,7 +410,7 @@ const Dashboard = () => {
                   </Button>
                 </Box>
               ) : (
-                <Box>
+                <Box sx={{ flex: 1, overflow: 'auto' }}>
                   {subscriptions.slice(0, 5).map((subscription, index) => {
                     const status = getStatusBadge(subscription);
                     return (

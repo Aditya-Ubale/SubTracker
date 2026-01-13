@@ -76,7 +76,7 @@ const VALIDATION_RULES = {
 
 const steps = ['Verify Email', 'Create Account'];
 
-// Dark theme text field style
+// Dark theme text field style with autofill fix
 const darkTextFieldSx = {
   '& .MuiOutlinedInput-root': {
     backgroundColor: '#333333',
@@ -86,7 +86,15 @@ const darkTextFieldSx = {
   },
   '& .MuiInputLabel-root': { color: '#999999' },
   '& .MuiInputLabel-root.Mui-focused': { color: '#E50914' },
-  '& .MuiInputBase-input': { color: '#FFFFFF' },
+  '& .MuiInputBase-input': {
+    color: '#FFFFFF',
+    '&:-webkit-autofill, &:-webkit-autofill:hover, &:-webkit-autofill:focus, &:-webkit-autofill:active': {
+      WebkitBoxShadow: '0 0 0 1000px #333333 inset !important',
+      WebkitTextFillColor: '#FFFFFF !important',
+      caretColor: '#FFFFFF !important',
+      transition: 'background-color 5000s ease-in-out 0s',
+    },
+  },
   '& .MuiFormHelperText-root': { color: '#666666' },
 };
 
