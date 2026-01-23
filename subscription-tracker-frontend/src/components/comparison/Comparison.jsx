@@ -163,34 +163,61 @@ const Comparison = () => {
     yearly: Math.round((plan.priceYearly || 0) / 12),
   }));
 
-  // Custom tooltip
+  // Custom tooltip - matching BudgetChart style
   const ChartTooltip = ({ active, payload }) => {
     if (!active || !payload?.length) return null;
     const data = payload[0].payload;
     return (
       <Box sx={{
-        bgcolor: '#1a1a1a',
+        bgcolor: '#1a1a1f',
         p: 1.5,
-        borderRadius: 1.5,
-        border: '1px solid rgba(255,255,255,0.08)',
-        minWidth: 120,
+        borderRadius: 1,
+        border: '1px solid rgba(255,255,255,0.1)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+        minWidth: 160,
       }}>
-        <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#fff', mb: 0.5 }}>
+        <Typography sx={{
+          fontSize: '0.8125rem',
+          fontWeight: 600,
+          color: 'rgba(255,255,255,0.9)',
+          mb: 0.5,
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
+          pb: 0.75,
+        }}>
           {data.service}
         </Typography>
         <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', mb: 1 }}>
           {data.name}
         </Typography>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
-          <Typography sx={{ fontSize: '0.7rem', color: 'rgba(99, 102, 241, 0.9)' }}>
-            Monthly: {formatCurrency(data.monthly)}
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
-          <Typography sx={{ fontSize: '0.7rem', color: 'rgba(99, 102, 241, 0.5)' }}>
-            Yearly/mo: {formatCurrency(data.yearly)}
-          </Typography>
-        </Box>
+        {payload.map((entry, index) => (
+          <Box
+            key={index}
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 3,
+              py: 0.375,
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  bgcolor: entry.color,
+                }}
+              />
+              <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem' }}>
+                {entry.name}
+              </Typography>
+            </Box>
+            <Typography sx={{ fontWeight: 600, color: '#fff', fontSize: '0.8125rem' }}>
+              {formatCurrency(entry.value)}
+            </Typography>
+          </Box>
+        ))}
       </Box>
     );
   };
@@ -425,10 +452,10 @@ const Comparison = () => {
       {/* Comparison Results */}
       {selectedPlans.length >= 2 ? (
         <Box>
-          {/* Price Chart - Simplified */}
+          {/* Price Chart - Matching BudgetChart Style */}
           <Box sx={{ mb: 4 }}>
-            <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', mb: 2 }}>
-              PRICE COMPARISON
+            <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Price Comparison
             </Typography>
             <Box sx={{
               p: 2.5,
@@ -436,37 +463,56 @@ const Comparison = () => {
               bgcolor: 'rgba(255,255,255,0.02)',
               border: '1px solid rgba(255,255,255,0.04)',
             }}>
-              <Box sx={{ height: 200 }}>
+              <Box sx={{ height: 240 }}>
                 <ResponsiveContainer>
-                  <BarChart data={chartData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }} barCategoryGap="20%">
+                  <BarChart
+                    data={chartData}
+                    margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
+                    barGap={2}
+                    barCategoryGap="25%"
+                  >
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
                     <XAxis
                       dataKey="name"
-                      tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.4)' }}
-                      axisLine={false}
+                      tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }}
+                      axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
                       tickLine={false}
+                      dy={8}
                     />
                     <YAxis
-                      tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.35)' }}
+                      tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }}
                       axisLine={false}
                       tickLine={false}
-                      tickFormatter={v => `₹${v}`}
-                      width={50}
+                      tickFormatter={v => `₹${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v}`}
+                      width={45}
                     />
                     <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
-                    <Bar dataKey="monthly" name="Monthly" fill="rgba(99, 102, 241, 0.8)" radius={[3, 3, 0, 0]} maxBarSize={40} />
-                    <Bar dataKey="yearly" name="Yearly/mo" fill="rgba(99, 102, 241, 0.35)" radius={[3, 3, 0, 0]} maxBarSize={40} />
+                    <Bar
+                      dataKey="monthly"
+                      name="Monthly"
+                      fill="#6366F1"
+                      radius={[3, 3, 0, 0]}
+                      maxBarSize={40}
+                    />
+                    <Bar
+                      dataKey="yearly"
+                      name="Yearly (per month)"
+                      fill="#A5B4FC"
+                      radius={[3, 3, 0, 0]}
+                      maxBarSize={40}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, mt: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box sx={{ width: 10, height: 10, borderRadius: 1, bgcolor: 'rgba(99, 102, 241, 0.8)' }} />
-                  <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>Monthly</Typography>
+              {/* Legend - matching BudgetChart */}
+              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, pt: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#6366F1' }} />
+                  <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>Monthly</Typography>
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box sx={{ width: 10, height: 10, borderRadius: 1, bgcolor: 'rgba(99, 102, 241, 0.35)' }} />
-                  <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>Yearly (per month)</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#A5B4FC' }} />
+                  <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>Yearly (per month)</Typography>
                 </Box>
               </Box>
             </Box>

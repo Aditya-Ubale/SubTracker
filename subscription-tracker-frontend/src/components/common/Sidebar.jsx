@@ -1,12 +1,11 @@
 /**
  * Sidebar - Modern Collapsible Navigation
  * 
- * Design: Linear/Vercel inspired
+ * Design: Uses centralized theme from /styles/theme.js
  * - Collapsible (72px collapsed, 240px expanded)
  * - Smooth animations
  * - Clean iconography
- * - Hover tooltips when collapsed
- * - No duplicate branding (branding in header only)
+ * - SubTracker brand colors (red primary)
  */
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -40,9 +39,12 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 
+// Import theme
+import { colors, transitions, borderRadius, typography } from '../../styles/theme';
+
 // Sidebar dimensions
-const SIDEBAR_EXPANDED = 240;
-const SIDEBAR_COLLAPSED = 72;
+const SIDEBAR_EXPANDED = 220;
+const SIDEBAR_COLLAPSED = 64;
 
 // Navigation structure
 const NAV_SECTIONS = [
@@ -107,46 +109,44 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
       <ListItemButton
         onClick={() => handleNavigation(item.path)}
         sx={{
-          py: 1,
-          px: isCollapsed ? 1.5 : 1.5,
-          borderRadius: 2,
-          minHeight: 40,
+          py: 0.875,
+          px: isCollapsed ? 1.25 : 1.25,
+          borderRadius: borderRadius.md,
+          minHeight: 38,
           justifyContent: isCollapsed ? 'center' : 'flex-start',
           position: 'relative',
-          bgcolor: active ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
+          bgcolor: active ? colors.bg.cardHover : 'transparent',
 
           '&:hover': {
-            bgcolor: active
-              ? 'rgba(99, 102, 241, 0.15)'
-              : 'rgba(255, 255, 255, 0.05)',
+            bgcolor: colors.bg.cardHover,
           },
 
-          // Active indicator
+          // Active indicator - subtle left border
           '&::before': active
             ? {
               content: '""',
               position: 'absolute',
               left: 0,
-              top: '20%',
-              bottom: '20%',
-              width: 3,
-              borderRadius: '0 4px 4px 0',
-              bgcolor: '#6366f1',
+              top: '25%',
+              bottom: '25%',
+              width: 2,
+              borderRadius: '0 2px 2px 0',
+              bgcolor: colors.primary,
             }
             : {},
         }}
       >
         <ListItemIcon
           sx={{
-            minWidth: isCollapsed ? 0 : 36,
+            minWidth: isCollapsed ? 0 : 32,
             justifyContent: 'center',
           }}
         >
           <Icon
             sx={{
-              fontSize: 20,
-              color: active ? '#6366f1' : 'rgba(255, 255, 255, 0.5)',
-              transition: 'color 0.15s ease',
+              fontSize: 18,
+              color: active ? colors.text.primary : colors.text.muted,
+              transition: transitions.fast,
             }}
           />
         </ListItemIcon>
@@ -154,9 +154,9 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
           <ListItemText
             primary={item.label}
             primaryTypographyProps={{
-              fontSize: '0.875rem',
-              fontWeight: active ? 500 : 400,
-              color: active ? '#fff' : 'rgba(255, 255, 255, 0.65)',
+              fontSize: typography.fontSize.sm,
+              fontWeight: active ? typography.fontWeight.medium : typography.fontWeight.normal,
+              color: active ? colors.text.primary : colors.text.secondary,
             }}
           />
         )}
@@ -185,9 +185,9 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
       sx={{
         width: sidebarWidth,
         minHeight: '100%',
-        bgcolor: '#0f0f12',
-        borderRight: '1px solid rgba(255, 255, 255, 0.06)',
-        transition: 'width 0.2s ease',
+        bgcolor: colors.bg.secondary,
+        borderRight: `1px solid ${colors.border.default}`,
+        transition: 'width 0.15s ease-out',
         pt: isMobile ? 0 : 8,
       }}
     >
@@ -207,10 +207,10 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
               size="small"
               onClick={() => setCollapsed(!collapsed)}
               sx={{
-                color: 'rgba(255, 255, 255, 0.4)',
+                color: colors.text.dim,
                 '&:hover': {
-                  bgcolor: 'rgba(255, 255, 255, 0.05)',
-                  color: 'rgba(255, 255, 255, 0.7)',
+                  bgcolor: colors.bg.cardHover,
+                  color: colors.text.secondary,
                 },
               }}
             >
@@ -228,13 +228,13 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
             {section.label && !isCollapsed && (
               <Typography
                 sx={{
-                  px: 1.5,
+                  px: 1.25,
                   pt: idx > 0 ? 1.5 : 0,
-                  pb: 0.75,
-                  fontSize: '0.6875rem',
-                  fontWeight: 500,
-                  color: 'rgba(255, 255, 255, 0.35)',
-                  letterSpacing: '0.06em',
+                  pb: 0.5,
+                  fontSize: typography.fontSize.xs,
+                  fontWeight: typography.fontWeight.medium,
+                  color: colors.text.dim,
+                  letterSpacing: '0.04em',
                   textTransform: 'uppercase',
                 }}
               >
@@ -257,7 +257,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
         <Box
           sx={{
             height: 1,
-            bgcolor: 'rgba(255, 255, 255, 0.06)',
+            bgcolor: colors.border.default,
             mb: 1.5,
           }}
         />
@@ -273,9 +273,9 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
         <Box
           sx={{
             mt: 1.5,
-            p: isCollapsed ? 1 : 1.5,
-            borderRadius: 2,
-            bgcolor: 'rgba(255, 255, 255, 0.03)',
+            p: isCollapsed ? 0.875 : 1.25,
+            borderRadius: borderRadius.md,
+            bgcolor: colors.bg.cardHover,
             display: 'flex',
             alignItems: 'center',
             justifyContent: isCollapsed ? 'center' : 'flex-start',
@@ -285,12 +285,13 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
           <Tooltip title={isCollapsed ? user?.name : ''} placement="right">
             <Avatar
               sx={{
-                width: isCollapsed ? 36 : 32,
-                height: isCollapsed ? 36 : 32,
-                bgcolor: 'rgba(99, 102, 241, 0.15)',
-                color: '#6366f1',
-                fontSize: isCollapsed ? '0.875rem' : '0.75rem',
-                fontWeight: 600,
+                width: isCollapsed ? 32 : 28,
+                height: isCollapsed ? 32 : 28,
+                bgcolor: colors.bg.tertiary,
+                color: colors.text.secondary,
+                fontSize: typography.fontSize.sm,
+                fontWeight: typography.fontWeight.medium,
+                border: `1px solid ${colors.border.default}`,
                 cursor: 'pointer',
               }}
             >
@@ -303,9 +304,9 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography
                   sx={{
-                    fontWeight: 500,
-                    color: 'rgba(255, 255, 255, 0.85)',
-                    fontSize: '0.8125rem',
+                    fontWeight: typography.fontWeight.medium,
+                    color: colors.text.primary,
+                    fontSize: typography.fontSize.sm,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -315,8 +316,8 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
                 </Typography>
                 <Typography
                   sx={{
-                    color: 'rgba(255, 255, 255, 0.4)',
-                    fontSize: '0.6875rem',
+                    color: colors.text.dim,
+                    fontSize: typography.fontSize.xs,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -331,14 +332,14 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
                   size="small"
                   onClick={handleLogout}
                   sx={{
-                    color: 'rgba(255, 255, 255, 0.4)',
+                    color: colors.text.dim,
                     '&:hover': {
-                      bgcolor: 'rgba(239, 68, 68, 0.1)',
-                      color: '#ef4444',
+                      bgcolor: colors.status.errorBg,
+                      color: colors.status.error,
                     },
                   }}
                 >
-                  <Logout sx={{ fontSize: 16 }} />
+                  <Logout sx={{ fontSize: 14 }} />
                 </IconButton>
               </Tooltip>
             </>
@@ -361,7 +362,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
           boxSizing: 'border-box',
           borderRight: 'none',
           bgcolor: 'transparent',
-          transition: 'width 0.2s ease',
+          transition: 'width 0.15s ease-out',
           height: '100vh',
           overflowY: 'auto',
         },

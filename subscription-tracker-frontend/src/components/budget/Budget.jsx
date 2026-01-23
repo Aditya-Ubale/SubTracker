@@ -443,27 +443,30 @@ const Budget = () => {
         </CardContent>
       </Card>
 
-      {/* Budget History Chart - Calm data surface */}
-      {budgetData?.history && budgetData.history.length > 0 && (
-        <Card
-          sx={{
-            borderRadius: 2,
-            bgcolor: 'rgba(255, 255, 255, 0.02)',
-            border: '1px solid rgba(255, 255, 255, 0.04)',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-          }}
-        >
-          <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
-            <Typography
-              variant="body2"
-              sx={{ fontWeight: 500, color: 'rgba(255,255,255,0.8)', mb: 2 }}
-            >
-              History
-            </Typography>
-            <BudgetChart data={budgetData.history} />
-          </CardContent>
-        </Card>
-      )}
+      {/* Budget History Chart - Always show */}
+      <Card
+        sx={{
+          borderRadius: 2,
+          bgcolor: 'rgba(255, 255, 255, 0.02)',
+          border: '1px solid rgba(255, 255, 255, 0.04)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        }}
+      >
+        <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 500, color: 'rgba(255,255,255,0.8)', mb: 2 }}
+          >
+            Monthly Overview
+          </Typography>
+          <BudgetChart
+            data={budgetData?.history || []}
+            currentSubscriptionTotal={budgetData?.subscriptionTotal || 0}
+            currentIncome={budgetData?.monthlyIncome || 0}
+            currentExpenses={budgetData?.monthlyExpenses || 0}
+          />
+        </CardContent>
+      </Card>
     </Box>
   );
 };

@@ -1,5 +1,6 @@
 package com.subscriptiontracker.service;
 
+import com.subscriptiontracker.config.ScraperConfig;
 import com.subscriptiontracker.entity.PriceHistory;
 import com.subscriptiontracker.entity.Subscription;
 import com.subscriptiontracker.entity.SubscriptionPlan;
@@ -16,11 +17,11 @@ import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -45,6 +46,9 @@ public class PriceScraperService {
 
     @Autowired
     private AlertService alertService;
+
+    @Autowired
+    private ScraperConfig scraperConfig;
 
     // Map of subscription names to their pricing page URLs
     private static final Map<String, String> SUBSCRIPTION_URLS = new HashMap<>();
@@ -97,8 +101,14 @@ public class PriceScraperService {
         performScraping();
     }
 
-    // Scheduled scraping - runs every 6 hours (at 2 AM, 8 AM, 2 PM, 8 PM)
-    @Scheduled(cron = "0 0 2,8,14,20 * * ?")
+    /**
+     * Scheduled scraping entry point.
+     * NOTE: @Scheduled annotation REMOVED - scheduling is handled by
+     * PriceScrapingScheduler
+     * to prevent duplicate job executions and allow centralized schedule
+     * management.
+     * Call this method from the scheduler class.
+     */
     @Transactional
     public void scrapeAllPricesScheduled() {
         logger.info("[SCHEDULED] Starting scheduled price scraping at {}", LocalDateTime.now());
@@ -122,7 +132,9 @@ public class PriceScraperService {
         logger.info("Price scraping completed.");
     }
 
-    // Scrape price for a specific subscription
+    /**
+     * Scrape price for a specific subscription with retry logic.
+     */
     @Transactional
     public void scrapeSubscriptionPrice(Subscription subscription) {
         String url = SUBSCRIPTION_URLS.get(subscription.getName());
@@ -132,17 +144,17 @@ public class PriceScraperService {
             return;
         }
 
+        logger.info("Scraping price for: {} from {}", subscription.getName(), url);
+
+        // Fetch document with retry logic
+        Document doc = fetchDocumentWithRetry(url, subscription.getName());
+
+        if (doc == null) {
+            logger.error("Failed to fetch document for {} after all retries", subscription.getName());
+            return;
+        }
+
         try {
-            logger.info("Scraping price for: {} from {}", subscription.getName(), url);
-
-            // Connect to the website with timeout and user-agent
-            Document doc = Jsoup.connect(url)
-                    .userAgent(
-                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-                    .timeout(15000)
-                    .followRedirects(true)
-                    .get();
-
             // Extract all plans based on subscription name
             List<ScrapedPlan> scrapedPlans = extractPlans(doc, subscription.getName());
 
@@ -185,9 +197,83 @@ public class PriceScraperService {
                 logger.warn("No plans found for {}", subscription.getName());
             }
 
-        } catch (IOException e) {
-            logger.error("Failed to scrape {}: {}", subscription.getName(), e.getMessage());
+        } catch (Exception e) {
+            logger.error("Error processing scraped data for {}: {}", subscription.getName(), e.getMessage(), e);
         }
+    }
+
+    /**
+     * Fetch document with exponential backoff retry logic.
+     * 
+     * @param url              The URL to fetch
+     * @param subscriptionName Name for logging
+     * @return Document or null if all retries failed
+     */
+    private Document fetchDocumentWithRetry(String url, String subscriptionName) {
+        int maxAttempts = scraperConfig != null ? scraperConfig.getMaxRetryAttempts() : 3;
+        int timeout = scraperConfig != null ? scraperConfig.getConnectionTimeout() : 15000;
+        String userAgent = scraperConfig != null ? scraperConfig.getUserAgent()
+                : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
+
+        Exception lastException = null;
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                logger.debug("Fetch attempt {}/{} for {}", attempt, maxAttempts, subscriptionName);
+
+                Document doc = Jsoup.connect(url)
+                        .userAgent(userAgent)
+                        .timeout(timeout)
+                        .followRedirects(true)
+                        .ignoreHttpErrors(false)
+                        .get();
+
+                logger.debug("Successfully fetched {} on attempt {}", subscriptionName, attempt);
+                return doc;
+
+            } catch (SocketTimeoutException e) {
+                lastException = e;
+                logger.warn("Timeout on attempt {}/{} for {}: {}",
+                        attempt, maxAttempts, subscriptionName, e.getMessage());
+
+            } catch (IOException e) {
+                lastException = e;
+
+                // Check for rate limiting (HTTP 429) or server errors (5xx)
+                String message = e.getMessage();
+                if (message != null && (message.contains("429") || message.contains("5"))) {
+                    logger.warn("Rate limited or server error on attempt {}/{} for {}: {}",
+                            attempt, maxAttempts, subscriptionName, message);
+                } else {
+                    logger.warn("IO error on attempt {}/{} for {}: {}",
+                            attempt, maxAttempts, subscriptionName, message);
+                }
+            }
+
+            // If not the last attempt, wait before retry with exponential backoff
+            if (attempt < maxAttempts) {
+                long delayMs = scraperConfig != null
+                        ? scraperConfig.getRetryDelay(attempt)
+                        : 2000L * (long) Math.pow(2, attempt - 1);
+
+                logger.info("Waiting {}ms before retry attempt {} for {}",
+                        delayMs, attempt + 1, subscriptionName);
+
+                try {
+                    Thread.sleep(delayMs);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    logger.error("Retry interrupted for {}", subscriptionName);
+                    return null;
+                }
+            }
+        }
+
+        // All retries failed
+        logger.error("All {} fetch attempts failed for {}. Last error: {}",
+                maxAttempts, subscriptionName,
+                lastException != null ? lastException.getMessage() : "Unknown");
+        return null;
     }
 
     // Process a scraped plan and save/update it in the database
@@ -918,54 +1004,135 @@ public class PriceScraperService {
         return null;
     }
 
+    /**
+     * Extract JioHotstar plans from the subscription page.
+     * 
+     * NOTE: JioHotstar uses heavy JavaScript rendering, so static HTML scraping
+     * may not find dynamic pricing. This implementation tries DOM parsing first,
+     * then regex extraction from page text, and falls back to known prices.
+     * 
+     * For production, consider using a headless browser (Selenium/Playwright)
+     * for JavaScript-rendered content.
+     */
     private List<ScrapedPlan> extractJioHotstarPlans(Document doc) {
         List<ScrapedPlan> plans = new ArrayList<>();
 
         try {
-            // JioCinema Premium Plans - current pricing as of 2024
+            String pageText = doc.text();
+            boolean foundDynamicPrices = false;
 
-            // Plan 1: Premium Monthly
-            ScrapedPlan premiumPlan = new ScrapedPlan("Premium");
-            premiumPlan.priceMonthly = 29.0;
-            premiumPlan.priceYearly = 299.0;
-            premiumPlan.hasAds = false;
-            premiumPlan.deviceTypes = "All Devices";
-            premiumPlan.maxScreens = 4;
-            premiumPlan.videoQuality = "4K HDR";
-            premiumPlan.features.add("Ad-free entertainment");
-            premiumPlan.features.add("4K HDR streaming");
-            premiumPlan.features.add("Watch on 4 devices");
-            premiumPlan.features.add("Disney+ content");
-            premiumPlan.features.add("HBO Originals");
-            premiumPlan.features.add("Live Sports");
-            premiumPlan.extraFeatures = "Disney+, HBO, Peacock content";
-            plans.add(premiumPlan);
+            // Attempt 1: Try to extract prices from DOM
+            Elements priceElements = doc.select("[class*='price'], [class*='Price'], [data-price]");
 
-            // Plan 2: Family
-            ScrapedPlan familyPlan = new ScrapedPlan("Family");
-            familyPlan.priceMonthly = 89.0;
-            familyPlan.priceYearly = 899.0;
-            familyPlan.hasAds = false;
-            familyPlan.deviceTypes = "All Devices";
-            familyPlan.maxScreens = 4;
-            familyPlan.videoQuality = "4K HDR";
-            familyPlan.features.add("All Premium features");
-            familyPlan.features.add("Family sharing");
-            familyPlan.features.add("Multiple profiles");
-            familyPlan.extraFeatures = "Family sharing enabled";
-            plans.add(familyPlan);
+            for (Element priceEl : priceElements) {
+                String priceText = priceEl.text();
+                Pattern pricePattern = Pattern.compile("₹\\s*([\\d,]+)");
+                Matcher matcher = pricePattern.matcher(priceText);
+
+                if (matcher.find()) {
+                    String priceStr = matcher.group(1).replace(",", "");
+                    Double price = Double.parseDouble(priceStr);
+
+                    // Determine plan type based on price range
+                    if (price <= 50) {
+                        ScrapedPlan plan = createJioHotstarPlan("Premium", price, null);
+                        if (!planExists(plans, "Premium")) {
+                            plans.add(plan);
+                            foundDynamicPrices = true;
+                        }
+                    } else if (price <= 150) {
+                        ScrapedPlan plan = createJioHotstarPlan("Family", price, null);
+                        if (!planExists(plans, "Family")) {
+                            plans.add(plan);
+                            foundDynamicPrices = true;
+                        }
+                    }
+                }
+            }
+
+            // Attempt 2: Try regex on page text
+            if (!foundDynamicPrices) {
+                // Pattern: "₹29" or "Rs 29" or "₹ 29/month"
+                Pattern planPricePattern = Pattern.compile(
+                        "(Premium|Super|Family|Annual|Monthly)[^₹]*₹\\s*([\\d,]+)",
+                        Pattern.CASE_INSENSITIVE);
+                Matcher planMatcher = planPricePattern.matcher(pageText);
+
+                while (planMatcher.find()) {
+                    String planName = planMatcher.group(1);
+                    String priceStr = planMatcher.group(2).replace(",", "");
+                    Double price = Double.parseDouble(priceStr);
+
+                    if (!planExists(plans, planName)) {
+                        ScrapedPlan plan = createJioHotstarPlan(planName, price, null);
+                        plans.add(plan);
+                        foundDynamicPrices = true;
+                        logger.debug("Found JioHotstar plan from text: {} = ₹{}", planName, price);
+                    }
+                }
+            }
+
+            // Fallback: Use known prices if scraping failed
+            // IMPORTANT: These are fallback values - update periodically
+            if (plans.isEmpty()) {
+                logger.warn("JioHotstar: DOM scraping failed, using fallback prices. " +
+                        "Consider using a headless browser for JS-rendered content.");
+
+                // Premium Plan - as of Jan 2025
+                plans.add(createJioHotstarPlan("Premium", 29.0, 299.0));
+
+                // Family Plan
+                plans.add(createJioHotstarPlan("Family", 89.0, 899.0));
+
+                // Super Plan (if exists)
+                plans.add(createJioHotstarPlan("Super", 149.0, 1499.0));
+            }
 
             // Log results
             for (ScrapedPlan plan : plans) {
-                logger.info("Extracted JioCinema plan: {} - ₹{}/month, Devices: {}, Ads: {}",
-                        plan.planName, plan.priceMonthly, plan.maxScreens, plan.hasAds);
+                String source = foundDynamicPrices ? "SCRAPED" : "FALLBACK";
+                logger.info("[{}] JioHotstar plan: {} - ₹{}/month, Quality: {}, Screens: {}",
+                        source, plan.planName, plan.priceMonthly, plan.videoQuality, plan.maxScreens);
             }
 
         } catch (Exception e) {
-            logger.error("Error extracting JioCinema plans: {}", e.getMessage(), e);
+            logger.error("Error extracting JioHotstar plans: {}", e.getMessage(), e);
+
+            // Return fallback plans on error
+            plans.clear();
+            plans.add(createJioHotstarPlan("Premium", 29.0, 299.0));
+            plans.add(createJioHotstarPlan("Family", 89.0, 899.0));
         }
 
         return plans;
+    }
+
+    /**
+     * Helper to create a JioHotstar plan with standard features.
+     */
+    private ScrapedPlan createJioHotstarPlan(String name, Double monthlyPrice, Double yearlyPrice) {
+        ScrapedPlan plan = new ScrapedPlan(name);
+        plan.priceMonthly = monthlyPrice;
+        plan.priceYearly = yearlyPrice != null ? yearlyPrice : monthlyPrice * 12 * 0.85; // 15% yearly discount
+        plan.hasAds = false;
+        plan.deviceTypes = "All Devices";
+        plan.maxScreens = 4;
+        plan.videoQuality = "4K HDR";
+        plan.features.add("Ad-free entertainment");
+        plan.features.add("4K HDR streaming");
+        plan.features.add("Watch on 4 devices");
+        plan.features.add("Disney+ Hotstar content");
+        plan.features.add("HBO Originals");
+        plan.features.add("Live Sports");
+        plan.extraFeatures = "Disney+, HBO, Peacock content";
+        return plan;
+    }
+
+    /**
+     * Check if a plan with the given name already exists in the list.
+     */
+    private boolean planExists(List<ScrapedPlan> plans, String planName) {
+        return plans.stream().anyMatch(p -> p.planName.equalsIgnoreCase(planName));
     }
 
     // Legacy method kept for compatibility - no longer used

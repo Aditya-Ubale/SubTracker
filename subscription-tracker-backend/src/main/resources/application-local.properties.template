@@ -1,0 +1,54 @@
+# ============================================
+# LOCAL DEVELOPMENT CONFIGURATION
+# This file is for local development only
+# DO NOT commit real credentials to version control
+# ============================================
+
+# Include base configuration
+spring.profiles.active=local
+
+# ============================================
+# LOCAL DATABASE (PostgreSQL)
+# ============================================
+spring.datasource.url=jdbc:postgresql://localhost:5432/subscription_tracker_db
+spring.datasource.username=postgres
+spring.datasource.password=YOUR_LOCAL_PASSWORD_HERE
+
+# ============================================
+# LOCAL JPA SETTINGS
+# ============================================
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+
+# ============================================
+# LOCAL JWT (Development only - NOT for production)
+# ============================================
+jwt.secret=dev-only-secret-key-replace-in-production-with-strong-key
+jwt.expiration=86400000
+
+# ============================================
+# LOCAL EMAIL (Use your test credentials)
+# ============================================
+spring.mail.username=your-test-email@gmail.com
+spring.mail.password=your-app-password-here
+app.email.from=your-test-email@gmail.com
+
+# ============================================
+# LOCAL STRIPE (Test mode)
+# ============================================
+stripe.secret.key=sk_test_your_test_key_here
+
+# ============================================
+# LOCAL SCRAPER SETTINGS
+# ============================================
+scraper.usd.to.inr=83.0
+scraper.connection.timeout=15000
+scraper.retry.max-attempts=3
+scraper.retry.delay-ms=2000
+
+# ============================================
+# LOCAL LOGGING (More verbose for debugging)
+# ============================================
+logging.level.com.subscriptiontracker=DEBUG
+logging.level.com.subscriptiontracker.service.PriceScraperService=DEBUG

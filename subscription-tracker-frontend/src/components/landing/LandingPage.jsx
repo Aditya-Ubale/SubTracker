@@ -328,6 +328,8 @@ const LandingPage = () => {
     const navLinks = [
         { label: 'Features', href: '#features' },
         { label: 'How It Works', href: '#how-it-works' },
+        { label: 'Benefits', href: '#benefits' },
+        { label: 'What You Get', href: '#what-you-get' },
     ];
 
     return (
@@ -1135,7 +1137,7 @@ const LandingPage = () => {
             {/* ============================================
                 BENEFITS / OUTCOMES
             ============================================ */}
-            <Box sx={{ py: { xs: 10, md: 16 } }}>
+            <Box id="benefits" sx={{ py: { xs: 10, md: 16 } }}>
                 <Container maxWidth="lg">
                     <Box sx={{ textAlign: 'center', mb: 8, maxWidth: 600, mx: 'auto' }}>
                         <Typography
@@ -1186,10 +1188,11 @@ const LandingPage = () => {
                 </Container>
             </Box>
 
+
             {/* ============================================
                 KEY INFO SECTION (No fake stats)
             ============================================ */}
-            <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: COLORS.bgSecondary }}>
+            <Box id="what-you-get" sx={{ py: { xs: 8, md: 12 }, bgcolor: COLORS.bgSecondary }}>
                 <Container maxWidth="lg">
                     <Box sx={{ textAlign: 'center', mb: 6 }}>
                         <Typography

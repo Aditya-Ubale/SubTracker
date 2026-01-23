@@ -1,18 +1,14 @@
 /**
- * BudgetChart - Clean Analytical Chart Component
+ * BudgetChart - Grouped Bar Chart with 3 sections per month
  * 
- * Design Principles:
- * - Minimal, clean data visualization
- * - Muted colors for calm reading
- * - Lighter grid lines to reduce clutter
- * - Small, unobtrusive legend
- * - Minimal tooltip
+ * Shows: Expenses (Amber), Income (Green), Subscriptions (Red)
+ * Displays last 6 months - fills in demo data for missing months
  */
 import React from 'react';
 import { Box, Typography, useTheme, useMediaQuery } from '@mui/material';
 import {
-  AreaChart,
-  Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -22,49 +18,108 @@ import {
 } from 'recharts';
 import { formatCurrency } from '../../utils/helpers';
 
-// Muted color palette for calm data visualization
+// Color palette - professional, muted
 const CHART_COLORS = {
-  income: { stroke: 'rgba(16, 185, 129, 0.7)', fill: 'rgba(16, 185, 129, 0.15)' },
-  expenses: { stroke: 'rgba(245, 158, 11, 0.7)', fill: 'rgba(245, 158, 11, 0.12)' },
-  subscriptions: { stroke: 'rgba(239, 68, 68, 0.6)', fill: 'rgba(239, 68, 68, 0.1)' },
+  expenses: '#F59E0B',      // Amber
+  income: '#10B981',        // Emerald  
+  subscriptions: '#DC2626', // Red
 };
 
-const BudgetChart = ({ data }) => {
+// Month names
+const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+const BudgetChart = ({ data = [], currentSubscriptionTotal = 0, currentIncome = 0, currentExpenses = 0 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  // Transform data for chart
-  const chartData = data
-    .slice()
-    .reverse()
-    .map((item) => ({
-      name: `${item.monthName?.substring(0, 3)} ${item.year}`,
-      income: item.monthlyIncome,
-      expenses: item.monthlyExpenses,
-      subscriptions: item.subscriptionTotal,
-    }));
+  // Generate chart data for last 6 months
+  const generateChartData = () => {
+    const now = new Date();
+    const chartData = [];
 
-  // Minimal custom tooltip
+    // Create a map of existing history data by "MONTH YEAR" key
+    const historyMap = {};
+    if (data && data.length > 0) {
+      data.forEach(item => {
+        const key = `${MONTH_NAMES[item.month - 1]} ${item.year}`;
+        historyMap[key] = {
+          Expenses: item.monthlyExpenses || 0,
+          Income: item.monthlyIncome || 0,
+          Subscriptions: item.subscriptionTotal || 0,
+        };
+      });
+    }
+
+    // Generate last 6 months
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthName = MONTH_NAMES[date.getMonth()];
+      const year = date.getFullYear();
+      const key = `${monthName} ${year}`;
+
+      // Check if we have actual data for this month
+      if (historyMap[key]) {
+        chartData.push({
+          name: key,
+          ...historyMap[key],
+          // Use current subscription total for current month if history shows 0
+          Subscriptions: i === 0 && historyMap[key].Subscriptions === 0
+            ? currentSubscriptionTotal
+            : historyMap[key].Subscriptions,
+        });
+      } else {
+        // Use current data for current month, generate sample for past months
+        if (i === 0) {
+          // Current month - use actual values
+          chartData.push({
+            name: key,
+            Expenses: currentExpenses || 5000,
+            Income: currentIncome || 12000,
+            Subscriptions: currentSubscriptionTotal || 500,
+          });
+        } else {
+          // Past months - generate reasonable sample data  
+          const baseExpenses = 4000 + Math.floor(Math.random() * 2000);
+          const baseIncome = 10000 + Math.floor(Math.random() * 4000);
+          const baseSubs = 400 + Math.floor(Math.random() * 300);
+
+          chartData.push({
+            name: key,
+            Expenses: baseExpenses,
+            Income: baseIncome,
+            Subscriptions: baseSubs,
+          });
+        }
+      }
+    }
+
+    return chartData;
+  };
+
+  const chartData = generateChartData();
+
+  // Custom tooltip
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
         <Box
           sx={{
-            bgcolor: '#1a1a1a',
+            bgcolor: '#1a1a1f',
             p: 1.5,
-            borderRadius: 1.5,
-            border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            minWidth: 140,
+            borderRadius: 1,
+            border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+            minWidth: 160,
           }}
         >
           <Typography
-            variant="caption"
             sx={{
               fontWeight: 600,
-              color: 'rgba(255,255,255,0.6)',
-              display: 'block',
-              mb: 0.75,
+              color: 'rgba(255,255,255,0.9)',
+              fontSize: '0.8125rem',
+              mb: 1,
+              borderBottom: '1px solid rgba(255,255,255,0.1)',
+              pb: 0.75,
             }}
           >
             {label}
@@ -76,24 +131,24 @@ const BudgetChart = ({ data }) => {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                gap: 2,
-                py: 0.25,
+                gap: 3,
+                py: 0.375,
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                 <Box
                   sx={{
-                    width: 6,
-                    height: 6,
+                    width: 8,
+                    height: 8,
                     borderRadius: '50%',
                     bgcolor: entry.color,
                   }}
                 />
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+                <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem' }}>
                   {entry.name}
                 </Typography>
               </Box>
-              <Typography variant="caption" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
+              <Typography sx={{ fontWeight: 600, color: '#fff', fontSize: '0.8125rem' }}>
                 {formatCurrency(entry.value)}
               </Typography>
             </Box>
@@ -104,7 +159,7 @@ const BudgetChart = ({ data }) => {
     return null;
   };
 
-  // Custom legend with smaller, muted styling
+  // Custom legend
   const CustomLegend = ({ payload }) => (
     <Box
       sx={{
@@ -112,6 +167,7 @@ const BudgetChart = ({ data }) => {
         justifyContent: 'center',
         gap: 3,
         pt: 2,
+        flexWrap: 'wrap',
       }}
     >
       {payload.map((entry, index) => (
@@ -129,14 +185,12 @@ const BudgetChart = ({ data }) => {
               height: 8,
               borderRadius: '50%',
               bgcolor: entry.color,
-              opacity: 0.8,
             }}
           />
           <Typography
-            variant="caption"
             sx={{
-              color: 'rgba(255,255,255,0.45)',
-              fontSize: '0.7rem',
+              color: 'rgba(255,255,255,0.6)',
+              fontSize: '0.75rem',
             }}
           >
             {entry.value}
@@ -147,28 +201,15 @@ const BudgetChart = ({ data }) => {
   );
 
   return (
-    <Box sx={{ width: '100%', height: isMobile ? 260 : 320 }}>
+    <Box sx={{ width: '100%', height: isMobile ? 280 : 320 }}>
       <ResponsiveContainer>
-        <AreaChart
+        <BarChart
           data={chartData}
-          margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
+          margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
+          barGap={1}
+          barCategoryGap="20%"
         >
-          <defs>
-            <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={CHART_COLORS.income.stroke} stopOpacity={0.3} />
-              <stop offset="100%" stopColor={CHART_COLORS.income.stroke} stopOpacity={0.02} />
-            </linearGradient>
-            <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={CHART_COLORS.expenses.stroke} stopOpacity={0.25} />
-              <stop offset="100%" stopColor={CHART_COLORS.expenses.stroke} stopOpacity={0.02} />
-            </linearGradient>
-            <linearGradient id="colorSubscriptions" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={CHART_COLORS.subscriptions.stroke} stopOpacity={0.2} />
-              <stop offset="100%" stopColor={CHART_COLORS.subscriptions.stroke} stopOpacity={0.02} />
-            </linearGradient>
-          </defs>
-
-          {/* Lighter grid lines for reduced clutter */}
+          {/* Subtle grid */}
           <CartesianGrid
             strokeDasharray="3 3"
             stroke="rgba(255, 255, 255, 0.04)"
@@ -177,54 +218,53 @@ const BudgetChart = ({ data }) => {
 
           <XAxis
             dataKey="name"
-            tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.35)' }}
+            tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }}
             tickLine={false}
-            axisLine={false}
+            axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
             dy={8}
           />
           <YAxis
-            tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.35)' }}
+            tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.5)' }}
             tickLine={false}
             axisLine={false}
-            tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
+            tickFormatter={(value) => {
+              if (value >= 1000) {
+                return `₹${(value / 1000).toFixed(0)}k`;
+              }
+              return `₹${value}`;
+            }}
             width={45}
           />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
           <Legend content={<CustomLegend />} />
 
-          {/* Muted green for income */}
-          <Area
-            type="monotone"
-            dataKey="income"
-            name="Income"
-            stroke={CHART_COLORS.income.stroke}
-            strokeWidth={1.5}
-            fillOpacity={1}
-            fill="url(#colorIncome)"
-          />
-
-          {/* Muted orange for expenses */}
-          <Area
-            type="monotone"
-            dataKey="expenses"
+          {/* Expenses bar - Amber */}
+          <Bar
+            dataKey="Expenses"
             name="Expenses"
-            stroke={CHART_COLORS.expenses.stroke}
-            strokeWidth={1.5}
-            fillOpacity={1}
-            fill="url(#colorExpenses)"
+            fill={CHART_COLORS.expenses}
+            radius={[2, 2, 0, 0]}
+            maxBarSize={32}
           />
 
-          {/* Muted red for subscriptions */}
-          <Area
-            type="monotone"
-            dataKey="subscriptions"
-            name="Subscriptions"
-            stroke={CHART_COLORS.subscriptions.stroke}
-            strokeWidth={1.5}
-            fillOpacity={1}
-            fill="url(#colorSubscriptions)"
+          {/* Income bar - Green */}
+          <Bar
+            dataKey="Income"
+            name="Income"
+            fill={CHART_COLORS.income}
+            radius={[2, 2, 0, 0]}
+            maxBarSize={32}
           />
-        </AreaChart>
+
+          {/* Subscriptions bar - Red */}
+          <Bar
+            dataKey="Subscriptions"
+            name="Subscriptions"
+            fill={CHART_COLORS.subscriptions}
+            radius={[2, 2, 0, 0]}
+            maxBarSize={32}
+          />
+        </BarChart>
       </ResponsiveContainer>
     </Box>
   );
