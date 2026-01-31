@@ -1,0 +1,44 @@
+# ============================================
+# SubTracker - PostgreSQL Database
+# Custom database image with initialization
+# ============================================
+
+FROM postgres:15-alpine
+
+LABEL maintainer="SubTracker Team"
+LABEL description="SubTracker - PostgreSQL Database"
+LABEL version="1.0.0"
+
+# Environment variables
+ENV POSTGRES_DB=subscription_tracker_db
+ENV POSTGRES_USER=postgres
+ENV POSTGRES_PASSWORD=Adi@1608
+ENV PGDATA=/var/lib/postgresql/data/pgdata
+
+# Create initialization script (runs on first start only)
+COPY <<EOF /docker-entrypoint-initdb.d/01-init.sql
+-- SubTracker Database Initialization
+-- This script runs automatically on first container start
+
+-- Create extensions if needed
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Grant privileges
+GRANT ALL PRIVILEGES ON DATABASE subscription_tracker TO postgres;
+
+-- Log successful initialization
+DO \$\$
+BEGIN
+    RAISE NOTICE 'SubTracker database initialized successfully!';
+END \$\$;
+EOF
+
+# Health check
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
+    CMD pg_isready -U postgres -d subscription_tracker || exit 1
+
+# Expose PostgreSQL port
+EXPOSE 5432
+
+# Data volume
+VOLUME ["/var/lib/postgresql/data"]

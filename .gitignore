@@ -1,0 +1,34 @@
+# ============================================
+# SubTracker - Root .gitignore
+# ============================================
+
+# Environment files (NEVER commit these!)
+.env
+.env.local
+.env.*.local
+*.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Docker volumes data (if stored locally)
+data/
+postgres_data/
+
+# Secrets
+*.pem
+*.key
+*.crt
+secrets/
