@@ -68,26 +68,22 @@ const BudgetChart = ({ data = [], currentSubscriptionTotal = 0, currentIncome = 
             : historyMap[key].Subscriptions,
         });
       } else {
-        // Use current data for current month, generate sample for past months
+        // Use current data for current month, zeros for past months with no data
         if (i === 0) {
           // Current month - use actual values
           chartData.push({
             name: key,
-            Expenses: currentExpenses || 5000,
-            Income: currentIncome || 12000,
-            Subscriptions: currentSubscriptionTotal || 500,
+            Expenses: currentExpenses,
+            Income: currentIncome,
+            Subscriptions: currentSubscriptionTotal,
           });
         } else {
-          // Past months - generate reasonable sample data  
-          const baseExpenses = 4000 + Math.floor(Math.random() * 2000);
-          const baseIncome = 10000 + Math.floor(Math.random() * 4000);
-          const baseSubs = 400 + Math.floor(Math.random() * 300);
-
+          // Past months with no data - show zeros
           chartData.push({
             name: key,
-            Expenses: baseExpenses,
-            Income: baseIncome,
-            Subscriptions: baseSubs,
+            Expenses: 0,
+            Income: 0,
+            Subscriptions: 0,
           });
         }
       }
