@@ -17,7 +17,7 @@ RUN npm ci --legacy-peer-deps
 COPY . .
 
 # Build arguments for API URL configuration
-ARG VITE_API_URL=http://localhost:8084/api
+ARG VITE_API_URL=https://subscription-tracker-backend-mk2p.onrender.com/api
 ENV VITE_API_URL=$VITE_API_URL
 
 # Build the application

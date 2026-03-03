@@ -86,7 +86,9 @@ export const shadows = {
     // Card shadows - subtle, not dramatic
     sm: '0 1px 2px rgba(0, 0, 0, 0.15)',
     card: '0 2px 8px rgba(0, 0, 0, 0.2)',
-    cardHover: '0 4px 12px rgba(0, 0, 0, 0.25)',
+    cardHover: '0 8px 24px rgba(0, 0, 0, 0.3)',
+    elevated: '0 4px 16px rgba(0, 0, 0, 0.25), 0 1px 4px rgba(0, 0, 0, 0.15)',
+    glass: '0 4px 30px rgba(0, 0, 0, 0.15)',
 
     // No glowing button shadows - flat/subtle only
     button: 'none',
@@ -156,9 +158,10 @@ export const borderRadius = {
     none: '0',
     xs: '2px',
     sm: '4px',
-    md: '6px',
-    lg: '8px',       // Main card radius - not too round
-    xl: '10px',
+    md: '8px',
+    lg: '12px',      // Main card radius - premium feel
+    xl: '16px',
+    '2xl': '20px',
     full: '9999px',
 };
 

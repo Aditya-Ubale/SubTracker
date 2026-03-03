@@ -1302,6 +1302,302 @@ const LandingPage = () => {
             </Box>
 
             {/* ============================================
+                ABOUT PROJECT SECTION
+            ============================================ */}
+            <Box
+                id="about"
+                sx={{
+                    py: { xs: 10, md: 14 },
+                    position: 'relative',
+                    overflow: 'hidden',
+                    borderTop: `1px solid ${COLORS.border}`,
+                }}
+            >
+                {/* Subtle background glow */}
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        top: '30%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        width: '80%',
+                        height: '50%',
+                        background: 'radial-gradient(ellipse at center, rgba(99, 102, 241, 0.08) 0%, transparent 70%)',
+                        pointerEvents: 'none',
+                    }}
+                />
+
+                <Container maxWidth="md" sx={{ position: 'relative', zIndex: 1 }}>
+
+                    {/* ---- Super 30 Badge ---- */}
+                    <Box sx={{ textAlign: 'center', mb: 5 }}>
+                        <Box
+                            sx={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 1,
+                                px: 2.5,
+                                py: 1,
+                                borderRadius: 10,
+                                bgcolor: 'rgba(99, 102, 241, 0.1)',
+                                border: '1px solid rgba(99, 102, 241, 0.25)',
+                                boxShadow: '0 0 20px rgba(99, 102, 241, 0.12)',
+                            }}
+                        >
+                            <Typography sx={{ fontSize: '1rem' }}>🎓</Typography>
+                            <Typography
+                                sx={{
+                                    fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                                    fontWeight: 600,
+                                    color: '#818cf8',
+                                    letterSpacing: '0.01em',
+                                }}
+                            >
+                                Super 30 Project – MIT Academy of Engineering (MITAOE)
+                            </Typography>
+                        </Box>
+                    </Box>
+
+                    {/* ---- About SubTracker ---- */}
+                    <Box sx={{ textAlign: 'center', mb: { xs: 8, md: 10 } }}>
+                        <Typography
+                            sx={{
+                                fontSize: '0.75rem',
+                                color: COLORS.accent,
+                                letterSpacing: '0.2em',
+                                textTransform: 'uppercase',
+                                fontWeight: 600,
+                                mb: 2,
+                            }}
+                        >
+                            About The Project
+                        </Typography>
+                        <Typography
+                            variant="h2"
+                            sx={{
+                                fontSize: TYPOGRAPHY.h1,
+                                fontWeight: 800,
+                                letterSpacing: '-0.02em',
+                                mb: 3,
+                            }}
+                        >
+                            About SubTracker
+                        </Typography>
+                        <Typography
+                            sx={{
+                                color: COLORS.textSecondary,
+                                fontSize: { xs: '1rem', md: '1.125rem' },
+                                lineHeight: 1.75,
+                                maxWidth: 720,
+                                mx: 'auto',
+                            }}
+                        >
+                            SubTracker is a Super 30 initiative project developed at MIT Academy of Engineering.
+                            The platform helps users track subscriptions, monitor monthly spending, compare plans,
+                            and manage renewals efficiently — all from a single, beautifully designed dashboard.
+                        </Typography>
+                    </Box>
+
+                    {/* ---- Tech Stack ---- */}
+                    <Box sx={{ mb: { xs: 8, md: 10 } }}>
+                        <Box sx={{ textAlign: 'center', mb: 5 }}>
+                            <Typography
+                                sx={{
+                                    fontSize: '0.75rem',
+                                    color: COLORS.accent,
+                                    letterSpacing: '0.2em',
+                                    textTransform: 'uppercase',
+                                    fontWeight: 600,
+                                    mb: 2,
+                                }}
+                            >
+                                Built With
+                            </Typography>
+                            <Typography
+                                variant="h3"
+                                sx={{
+                                    fontSize: TYPOGRAPHY.h2,
+                                    fontWeight: 700,
+                                    letterSpacing: '-0.02em',
+                                }}
+                            >
+                                Tech Stack
+                            </Typography>
+                        </Box>
+
+                        <Box
+                            sx={{
+                                display: 'grid',
+                                gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(5, 1fr)' },
+                                gap: 2,
+                            }}
+                        >
+                            {[
+                                { name: 'React + Vite', icon: '⚛️', label: 'Frontend', color: '#61DAFB' },
+                                { name: 'Spring Boot', icon: '🍃', label: 'Backend', color: '#6DB33F' },
+                                { name: 'PostgreSQL', icon: '🐘', label: 'Database', color: '#336791' },
+                                { name: 'Material UI', icon: '🎨', label: 'Styling', color: '#007FFF' },
+                                { name: 'JWT Auth', icon: '🔐', label: 'Security', color: '#F59E0B' },
+                            ].map((tech, idx) => (
+                                <Box
+                                    key={idx}
+                                    sx={{
+                                        textAlign: 'center',
+                                        p: 3,
+                                        borderRadius: 4,
+                                        bgcolor: COLORS.bgCard,
+                                        border: `1px solid ${COLORS.border}`,
+                                        transition: 'all 0.25s ease',
+                                        '&:hover': {
+                                            transform: 'translateY(-4px)',
+                                            bgcolor: COLORS.bgCardHover,
+                                            borderColor: COLORS.borderHover,
+                                            boxShadow: `0 8px 30px rgba(0, 0, 0, 0.3), 0 0 15px ${tech.color}15`,
+                                        },
+                                    }}
+                                >
+                                    <Typography sx={{ fontSize: '2rem', mb: 1.5, lineHeight: 1 }}>{tech.icon}</Typography>
+                                    <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: COLORS.textPrimary, mb: 0.25 }}>
+                                        {tech.name}
+                                    </Typography>
+                                    <Typography sx={{ fontSize: '0.6875rem', color: COLORS.textDim }}>
+                                        {tech.label}
+                                    </Typography>
+                                </Box>
+                            ))}
+                        </Box>
+                    </Box>
+
+                    {/* ---- Developed By ---- */}
+                    <Box>
+                        <Box sx={{ textAlign: 'center', mb: 5 }}>
+                            <Typography
+                                sx={{
+                                    fontSize: '0.75rem',
+                                    color: COLORS.accent,
+                                    letterSpacing: '0.2em',
+                                    textTransform: 'uppercase',
+                                    fontWeight: 600,
+                                    mb: 2,
+                                }}
+                            >
+                                The Team
+                            </Typography>
+                            <Typography
+                                variant="h3"
+                                sx={{
+                                    fontSize: TYPOGRAPHY.h2,
+                                    fontWeight: 700,
+                                    letterSpacing: '-0.02em',
+                                }}
+                            >
+                                Developed By
+                            </Typography>
+                        </Box>
+
+                        <Stack
+                            direction={{ xs: 'column', sm: 'row' }}
+                            spacing={3}
+                            justifyContent="center"
+                            alignItems="stretch"
+                        >
+                            {[
+                                { name: 'Mrugmai Dudhamande', initials: 'MD', color: '#6366f1', github: 'https://github.com/MRUGMAIDUDHAMANDE', linkedin: 'https://in.linkedin.com/in/mrugmai-dudhamande-0352642b4' },
+                                { name: 'Aditya Ubale', initials: 'AU', color: '#E50914', github: 'https://github.com/Aditya-Ubale', linkedin: 'https://in.linkedin.com/in/aditya-ubale-94a057296' },
+                            ].map((dev, idx) => (
+                                <Box
+                                    key={idx}
+                                    sx={{
+                                        flex: 1,
+                                        maxWidth: 320,
+                                        mx: { xs: 'auto', sm: 0 },
+                                        width: { xs: '100%', sm: 'auto' },
+                                        textAlign: 'center',
+                                        p: { xs: 3, md: 4 },
+                                        borderRadius: 4,
+                                        bgcolor: COLORS.bgCard,
+                                        border: `1px solid ${COLORS.border}`,
+                                        transition: 'all 0.25s ease',
+                                        '&:hover': {
+                                            transform: 'translateY(-4px)',
+                                            bgcolor: COLORS.bgCardHover,
+                                            borderColor: COLORS.borderHover,
+                                            boxShadow: '0 12px 40px rgba(0, 0, 0, 0.3)',
+                                            '& .dev-avatar': {
+                                                boxShadow: `0 0 24px ${dev.color}30`,
+                                                transform: 'scale(1.05)',
+                                            },
+                                        },
+                                    }}
+                                >
+                                    {/* Avatar */}
+                                    <Avatar
+                                        className="dev-avatar"
+                                        sx={{
+                                            width: 80,
+                                            height: 80,
+                                            mx: 'auto',
+                                            mb: 2.5,
+                                            bgcolor: `${dev.color}20`,
+                                            border: `2px solid ${dev.color}40`,
+                                            color: dev.color,
+                                            fontSize: '1.5rem',
+                                            fontWeight: 700,
+                                            transition: 'all 0.3s ease',
+                                        }}
+                                    >
+                                        {dev.initials}
+                                    </Avatar>
+
+                                    {/* Name */}
+                                    <Typography sx={{ fontSize: '1.125rem', fontWeight: 600, color: COLORS.textPrimary, mb: 0.5 }}>
+                                        {dev.name}
+                                    </Typography>
+
+                                    {/* Role */}
+                                    <Typography sx={{ fontSize: '0.8125rem', color: COLORS.textMuted, mb: 2.5 }}>
+                                        Full Stack Developer
+                                    </Typography>
+
+                                    {/* Social Icons */}
+                                    <Stack direction="row" spacing={1} justifyContent="center">
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => window.open(dev.github, '_blank')}
+                                            sx={{
+                                                color: COLORS.textDim,
+                                                bgcolor: 'rgba(255,255,255,0.03)',
+                                                border: `1px solid ${COLORS.border}`,
+                                                width: 36,
+                                                height: 36,
+                                                '&:hover': { color: COLORS.white, bgcolor: 'rgba(255,255,255,0.08)', borderColor: COLORS.borderHover },
+                                            }}
+                                        >
+                                            <GitHub sx={{ fontSize: 18 }} />
+                                        </IconButton>
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => window.open(dev.linkedin, '_blank')}
+                                            sx={{
+                                                color: COLORS.textDim,
+                                                bgcolor: 'rgba(255,255,255,0.03)',
+                                                border: `1px solid ${COLORS.border}`,
+                                                width: 36,
+                                                height: 36,
+                                                '&:hover': { color: '#0A66C2', bgcolor: 'rgba(255,255,255,0.08)', borderColor: COLORS.borderHover },
+                                            }}
+                                        >
+                                            <LinkedIn sx={{ fontSize: 18 }} />
+                                        </IconButton>
+                                    </Stack>
+                                </Box>
+                            ))}
+                        </Stack>
+                    </Box>
+                </Container>
+            </Box>
+
+            {/* ============================================
                 FOOTER
             ============================================ */}
             <Box component="footer" sx={{ py: 8, bgcolor: COLORS.bgSecondary, borderTop: `1px solid ${COLORS.border}` }}>

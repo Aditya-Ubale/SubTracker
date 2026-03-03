@@ -1,11 +1,13 @@
 /**
- * Dashboard - SubTracker Dashboard (Polished)
+ * Dashboard - SubTracker Dashboard (Redesigned)
  * 
- * DESIGN: Professional, human-designed SaaS dashboard
- * - Fixed header alignment
- * - Subtle visual enhancements
- * - Matched panel heights
- * - Clear hierarchy
+ * DESIGN: Premium SaaS dashboard inspired by Stripe / Linear / Vercel
+ * - 12-column responsive grid with max-width 1400px
+ * - Balanced layout with no empty space
+ * - Glass-effect cards with hover animations
+ * - Consistent 8px spacing grid
+ * - Clean typography hierarchy
+ * - Smooth micro-interactions
  */
 import React, { useState, useEffect } from 'react';
 import {
@@ -20,6 +22,8 @@ import {
   IconButton,
   Tooltip,
   CircularProgress,
+  Chip,
+  LinearProgress,
 } from '@mui/material';
 import {
   Add,
@@ -29,6 +33,9 @@ import {
   TrendingUp,
   CreditCard,
   AccountBalanceWallet,
+  NotificationsNone,
+  ArrowUpward,
+  ArrowDownward,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import Calendar from 'react-calendar';
@@ -45,9 +52,30 @@ import SuccessPopup from '../common/SuccessPopup';
 import { colors, shadows, borderRadius, transitions, typography } from '../../styles/theme';
 
 // ============================================
-// FIXED HEIGHTS FOR LAYOUT ALIGNMENT
+// DESIGN TOKENS (Dashboard-specific)
 // ============================================
-const CARD_HEIGHT = 400;
+const DASHBOARD_MAX_WIDTH = 1400;
+const SECTION_GAP = 4; // 32px (MUI spacing unit = 8px)
+const CARD_GAP = 3; // 24px
+const CARD_PADDING = 3; // 24px
+const CARD_RADIUS = borderRadius.xl; // 16px
+const MAIN_CARD_MIN_HEIGHT = 440;
+
+// Glassmorphism card base style
+const glassCard = {
+  bgcolor: 'rgba(26, 26, 31, 0.7)',
+  backdropFilter: 'blur(12px)',
+  borderRadius: CARD_RADIUS,
+  border: `1px solid ${colors.border.default}`,
+  boxShadow: shadows.elevated,
+  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+  overflow: 'hidden',
+  '&:hover': {
+    borderColor: colors.border.hover,
+    boxShadow: shadows.cardHover,
+    transform: 'translateY(-2px)',
+  },
+};
 
 // ============================================
 // HELPER FUNCTIONS
@@ -61,32 +89,46 @@ const getGreeting = () => {
 };
 
 // ============================================
-// STATS CARD COMPONENT (Enhanced)
+// STATS CARD COMPONENT (Premium)
 // ============================================
 
-const StatsCard = ({ title, value, icon: Icon, accentColor, onClick }) => (
+const StatsCard = ({ title, value, icon: Icon, accentColor, onClick, subtitle }) => (
   <Card
     onClick={onClick}
     sx={{
-      bgcolor: colors.bg.card,
-      borderRadius: borderRadius.lg,
-      border: `1px solid ${colors.border.default}`,
-      boxShadow: shadows.sm,
+      ...glassCard,
       cursor: onClick ? 'pointer' : 'default',
-      transition: transitions.default,
       position: 'relative',
-      overflow: 'hidden',
       '&:hover': onClick ? {
-        bgcolor: colors.bg.cardHover,
-        borderColor: colors.border.hover,
-        boxShadow: shadows.card,
+        ...glassCard['&:hover'],
         '& .stat-icon': {
-          transform: 'scale(1.1)',
+          transform: 'scale(1.1) rotate(5deg)',
+        },
+        '& .stat-accent': {
+          opacity: 0.15,
+          transform: 'scale(1.2)',
         },
       } : {},
     }}
   >
-    {/* Subtle accent bar */}
+    {/* Background accent glow */}
+    <Box
+      className="stat-accent"
+      sx={{
+        position: 'absolute',
+        top: -20,
+        right: -20,
+        width: 100,
+        height: 100,
+        borderRadius: '50%',
+        bgcolor: accentColor,
+        opacity: 0.06,
+        filter: 'blur(30px)',
+        transition: 'all 0.4s ease',
+      }}
+    />
+
+    {/* Top accent line */}
     <Box
       sx={{
         position: 'absolute',
@@ -94,22 +136,23 @@ const StatsCard = ({ title, value, icon: Icon, accentColor, onClick }) => (
         left: 0,
         right: 0,
         height: '2px',
-        bgcolor: accentColor,
-        opacity: 0.6,
+        background: `linear-gradient(90deg, ${accentColor}, transparent)`,
+        opacity: 0.5,
       }}
     />
-    <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+
+    <CardContent sx={{ p: CARD_PADDING, '&:last-child': { pb: CARD_PADDING } }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <Box>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
           {/* Label */}
           <Typography
             sx={{
-              fontSize: typography.fontSize.xs,
+              fontSize: '0.6875rem',
               color: colors.text.muted,
               textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              fontWeight: typography.fontWeight.medium,
-              mb: 0.75,
+              letterSpacing: '0.08em',
+              fontWeight: 600,
+              mb: 1.25,
             }}
           >
             {title}
@@ -118,15 +161,28 @@ const StatsCard = ({ title, value, icon: Icon, accentColor, onClick }) => (
           {/* Value */}
           <Typography
             sx={{
-              fontSize: '1.5rem',
-              fontWeight: typography.fontWeight.bold,
+              fontSize: '1.75rem',
+              fontWeight: 700,
               color: colors.text.primary,
               letterSpacing: '-0.02em',
-              lineHeight: 1.2,
+              lineHeight: 1.1,
             }}
           >
             {value}
           </Typography>
+
+          {/* Subtitle */}
+          {subtitle && (
+            <Typography
+              sx={{
+                fontSize: '0.8125rem',
+                color: colors.text.dim,
+                mt: 0.75,
+              }}
+            >
+              {subtitle}
+            </Typography>
+          )}
         </Box>
 
         {/* Icon */}
@@ -134,17 +190,19 @@ const StatsCard = ({ title, value, icon: Icon, accentColor, onClick }) => (
           <Box
             className="stat-icon"
             sx={{
-              width: 40,
-              height: 40,
-              borderRadius: borderRadius.md,
-              bgcolor: `${accentColor}15`,
+              width: 44,
+              height: 44,
+              borderRadius: borderRadius.lg,
+              bgcolor: `${accentColor}12`,
+              border: `1px solid ${accentColor}20`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transition: transitions.default,
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              flexShrink: 0,
             }}
           >
-            <Icon sx={{ fontSize: 20, color: accentColor }} />
+            <Icon sx={{ fontSize: 22, color: accentColor }} />
           </Box>
         )}
       </Box>
@@ -153,7 +211,7 @@ const StatsCard = ({ title, value, icon: Icon, accentColor, onClick }) => (
 );
 
 // ============================================
-// SUBSCRIPTION ITEM COMPONENT (Enhanced)
+// SUBSCRIPTION ITEM COMPONENT (Premium)
 // ============================================
 
 const SubscriptionItem = ({ subscription, onClick, isLast }) => {
@@ -163,10 +221,11 @@ const SubscriptionItem = ({ subscription, onClick, isLast }) => {
 
   const getStatusChip = () => {
     if (days === null) return null;
-    if (days < 0) return { label: 'Overdue', color: colors.status.error };
-    if (days === 0) return { label: 'Today', color: colors.status.warning };
-    if (days <= 3) return { label: `${days}d`, color: colors.status.warning };
-    return { label: `${days}d left`, color: colors.text.dim };
+    if (days < 0) return { label: 'Overdue', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.12)', glow: '0 0 12px rgba(239, 68, 68, 0.2)' };
+    if (days === 0) return { label: 'Today', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.12)', glow: 'none' };
+    if (days <= 3) return { label: `${days}d left`, color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.1)', glow: 'none' };
+    if (days <= 7) return { label: `${days}d left`, color: colors.text.muted, bg: 'transparent', glow: 'none' };
+    return null;
   };
 
   const status = getStatusChip();
@@ -177,13 +236,17 @@ const SubscriptionItem = ({ subscription, onClick, isLast }) => {
       sx={{
         display: 'flex',
         alignItems: 'center',
-        py: 1.25,
-        px: 2.5,
+        py: 1.5,
+        px: CARD_PADDING,
         cursor: 'pointer',
-        transition: transitions.fast,
+        transition: 'all 0.15s ease',
         borderBottom: !isLast ? `1px solid ${colors.border.divider}` : 'none',
         '&:hover': {
-          bgcolor: colors.bg.cardHover,
+          bgcolor: 'rgba(255, 255, 255, 0.03)',
+          '& .sub-arrow': {
+            opacity: 1,
+            transform: 'translateX(0)',
+          },
         },
       }}
     >
@@ -191,57 +254,91 @@ const SubscriptionItem = ({ subscription, onClick, isLast }) => {
       <Avatar
         src={subscription.subscriptionLogo}
         sx={{
-          width: 36,
-          height: 36,
+          width: 38,
+          height: 38,
           bgcolor: subscription.subscriptionLogo ? 'transparent' : colors.bg.tertiary,
-          fontSize: typography.fontSize.sm,
-          fontWeight: typography.fontWeight.medium,
+          fontSize: '0.8125rem',
+          fontWeight: 600,
           color: colors.text.secondary,
           border: `1px solid ${colors.border.default}`,
-          mr: 1.5,
+          mr: 2,
+          flexShrink: 0,
         }}
       >
         {subscription.subscriptionName?.[0] || '?'}
       </Avatar>
 
-      {/* Name & Status */}
+      {/* Name & Plan */}
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography
           sx={{
-            fontWeight: typography.fontWeight.medium,
+            fontWeight: 500,
             color: colors.text.primary,
-            fontSize: typography.fontSize.base,
+            fontSize: '0.875rem',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
+            lineHeight: 1.4,
           }}
         >
           {subscription.subscriptionName}
         </Typography>
-        {status && (
-          <Typography
-            sx={{
-              fontSize: typography.fontSize.xs,
-              color: status.color,
-            }}
-          >
-            {status.label}
-          </Typography>
-        )}
+        <Typography
+          sx={{
+            fontSize: '0.75rem',
+            color: colors.text.dim,
+            lineHeight: 1.4,
+          }}
+        >
+          {subscription.subscriptionType || 'Monthly'}
+        </Typography>
       </Box>
+
+      {/* Status Badge */}
+      {status && (
+        <Chip
+          label={status.label}
+          size="small"
+          sx={{
+            height: 22,
+            fontSize: '0.6875rem',
+            fontWeight: 600,
+            color: status.color,
+            bgcolor: status.bg,
+            border: 'none',
+            borderRadius: borderRadius.full,
+            boxShadow: status.glow,
+            mr: 1.5,
+            '& .MuiChip-label': { px: 1 },
+          }}
+        />
+      )}
 
       {/* Price */}
       <Typography
         sx={{
-          fontWeight: typography.fontWeight.semibold,
+          fontWeight: 600,
           color: colors.text.primary,
-          fontSize: typography.fontSize.base,
-          ml: 2,
+          fontSize: '0.875rem',
           flexShrink: 0,
+          fontVariantNumeric: 'tabular-nums',
         }}
       >
         {formatCurrency(subscription.customPrice || subscription.originalPrice)}
       </Typography>
+
+      {/* Arrow indicator */}
+      <ArrowForward
+        className="sub-arrow"
+        sx={{
+          fontSize: 14,
+          color: colors.text.dim,
+          ml: 1,
+          opacity: 0,
+          transform: 'translateX(-4px)',
+          transition: 'all 0.15s ease',
+        }}
+      />
     </Box>
   );
 };
@@ -260,6 +357,7 @@ const Dashboard = () => {
     upcomingRenewals: 0,
     unreadAlerts: 0,
     savings: 0,
+    budgetLimit: 0,
   });
   const [subscriptions, setSubscriptions] = useState([]);
   const [budgetSummary, setBudgetSummary] = useState(null);
@@ -307,6 +405,7 @@ const Dashboard = () => {
         upcomingRenewals: renewals.length,
         unreadAlerts: alertCount,
         savings: savings > 0 ? savings : 0,
+        budgetLimit: budget?.monthlyBudget || 0,
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -405,32 +504,36 @@ const Dashboard = () => {
     }
   };
 
+  // Budget usage percentage
+  const budgetUsage = stats.budgetLimit > 0 ? Math.min((stats.monthlySpend / stats.budgetLimit) * 100, 100) : 0;
+  const budgetColor = budgetUsage > 90 ? colors.status.error : budgetUsage > 70 ? colors.status.warning : colors.accent.green;
+
   // ============================================
   // LOADING STATE
   // ============================================
 
   if (loading) {
     return (
-      <Box sx={{ maxWidth: 1100, mx: 'auto', px: 2 }}>
-        <Box sx={{ mb: 3 }}>
-          <Skeleton variant="text" width={220} height={32} sx={{ bgcolor: colors.bg.cardHover }} />
-          <Skeleton variant="text" width={280} height={18} sx={{ bgcolor: colors.bg.tertiary, mt: 0.5 }} />
+      <Box sx={{ maxWidth: DASHBOARD_MAX_WIDTH, mx: 'auto', px: { xs: 2, md: 3 } }}>
+        <Box sx={{ mb: SECTION_GAP }}>
+          <Skeleton variant="text" width={260} height={36} sx={{ bgcolor: colors.bg.cardHover, borderRadius: 1 }} />
+          <Skeleton variant="text" width={300} height={20} sx={{ bgcolor: colors.bg.tertiary, mt: 0.5, borderRadius: 1 }} />
         </Box>
 
-        <Grid container spacing={2.5} sx={{ mb: 3 }}>
-          {[1, 2, 3].map((i) => (
-            <Grid item xs={12} sm={4} key={i}>
-              <Skeleton variant="rounded" height={110} sx={{ borderRadius: 2, bgcolor: colors.bg.cardHover }} />
+        <Grid container spacing={CARD_GAP} sx={{ mb: SECTION_GAP }}>
+          {[1, 2, 3, 4].map((i) => (
+            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
+              <Skeleton variant="rounded" height={130} sx={{ borderRadius: CARD_RADIUS, bgcolor: colors.bg.cardHover }} />
             </Grid>
           ))}
         </Grid>
 
-        <Grid container spacing={2.5}>
-          <Grid item xs={12} lg={7}>
-            <Skeleton variant="rounded" height={CARD_HEIGHT} sx={{ borderRadius: 2, bgcolor: colors.bg.cardHover }} />
+        <Grid container spacing={CARD_GAP}>
+          <Grid size={{ xs: 12, md: 7 }}>
+            <Skeleton variant="rounded" height={MAIN_CARD_MIN_HEIGHT} sx={{ borderRadius: CARD_RADIUS, bgcolor: colors.bg.cardHover }} />
           </Grid>
-          <Grid item xs={12} lg={5}>
-            <Skeleton variant="rounded" height={CARD_HEIGHT} sx={{ borderRadius: 2, bgcolor: colors.bg.cardHover }} />
+          <Grid size={{ xs: 12, md: 5 }}>
+            <Skeleton variant="rounded" height={MAIN_CARD_MIN_HEIGHT} sx={{ borderRadius: CARD_RADIUS, bgcolor: colors.bg.cardHover }} />
           </Grid>
         </Grid>
       </Box>
@@ -442,7 +545,7 @@ const Dashboard = () => {
   // ============================================
 
   return (
-    <Box sx={{ maxWidth: 1100, mx: 'auto', px: 2 }}>
+    <Box sx={{ maxWidth: DASHBOARD_MAX_WIDTH, mx: 'auto', px: { xs: 2, md: 3 } }}>
       <SuccessPopup
         open={showSuccessPopup}
         onClose={() => setShowSuccessPopup(false)}
@@ -454,107 +557,217 @@ const Dashboard = () => {
       {/* ============================================
           HEADER SECTION
       ============================================ */}
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Box
+        sx={{
+          mb: SECTION_GAP,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: 2,
+        }}
+      >
         <Box>
           <Typography
             sx={{
-              fontWeight: typography.fontWeight.bold,
+              fontWeight: 700,
               color: colors.text.primary,
-              fontSize: '1.625rem',
-              letterSpacing: '-0.02em',
-              lineHeight: 1.3,
+              fontSize: { xs: '1.5rem', md: '1.75rem' },
+              letterSpacing: '-0.025em',
+              lineHeight: 1.2,
             }}
           >
             {getGreeting()}{user?.name ? `, ${user.name.split(' ')[0]}` : ''}
           </Typography>
-          <Typography sx={{ color: colors.text.muted, fontSize: typography.fontSize.sm, mt: 0.25 }}>
-            Subscription overview for {format(new Date(), 'MMMM yyyy')}
+          <Typography
+            sx={{
+              color: colors.text.muted,
+              fontSize: '0.875rem',
+              mt: 0.5,
+              letterSpacing: '0.01em',
+            }}
+          >
+            Here's your subscription overview for {format(new Date(), 'MMMM yyyy')}
           </Typography>
         </Box>
 
-        {/* Export button */}
-        <Tooltip title="Export Report" arrow>
-          <IconButton
+        {/* Actions */}
+        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={exportingPdf ? <CircularProgress size={14} sx={{ color: colors.text.muted }} /> : <Download sx={{ fontSize: 16 }} />}
             onClick={handleExportPdf}
             disabled={exportingPdf}
             sx={{
-              bgcolor: colors.bg.card,
-              border: `1px solid ${colors.border.default}`,
+              borderColor: colors.border.hover,
+              color: colors.text.secondary,
               borderRadius: borderRadius.md,
-              width: 38,
-              height: 38,
+              textTransform: 'none',
+              px: 2,
+              py: 0.75,
+              fontSize: '0.8125rem',
+              fontWeight: 500,
               '&:hover': {
-                bgcolor: colors.bg.cardHover,
-                borderColor: colors.border.hover,
+                borderColor: colors.text.muted,
+                bgcolor: 'rgba(255, 255, 255, 0.04)',
               },
             }}
           >
-            {exportingPdf ? (
-              <CircularProgress size={16} sx={{ color: colors.text.muted }} />
-            ) : (
-              <Download sx={{ fontSize: 18, color: colors.text.secondary }} />
-            )}
-          </IconButton>
-        </Tooltip>
+            Export
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<Add sx={{ fontSize: 18 }} />}
+            onClick={() => navigate('/subscriptions/add')}
+            sx={{
+              bgcolor: colors.primary,
+              color: '#fff',
+              borderRadius: borderRadius.md,
+              textTransform: 'none',
+              px: 2.5,
+              py: 0.75,
+              fontSize: '0.8125rem',
+              fontWeight: 500,
+              boxShadow: '0 2px 8px rgba(220, 38, 38, 0.25)',
+              '&:hover': {
+                bgcolor: colors.primaryLight,
+                boxShadow: '0 4px 14px rgba(220, 38, 38, 0.3)',
+                transform: 'translateY(-1px)',
+              },
+              transition: 'all 0.2s ease',
+            }}
+          >
+            Add Subscription
+          </Button>
+        </Box>
       </Box>
 
       {/* ============================================
-          STATS CARDS
+          STATS CARDS ROW (4 equal columns)
       ============================================ */}
-      <Grid container spacing={2.5} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={4}>
+      <Grid container spacing={CARD_GAP} sx={{ mb: SECTION_GAP }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatsCard
             title="Monthly Spend"
             value={formatCurrency(stats.monthlySpend)}
             accentColor={colors.primary}
             onClick={() => navigate('/budget')}
             icon={TrendingUp}
+            subtitle="this month"
           />
         </Grid>
 
-        <Grid item xs={12} sm={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatsCard
             title="Active Subscriptions"
             value={stats.totalSubscriptions}
             accentColor={colors.accent.indigo}
             onClick={() => navigate('/subscriptions')}
             icon={CreditCard}
+            subtitle="services tracked"
           />
         </Grid>
 
-        <Grid item xs={12} sm={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatsCard
             title="Budget Remaining"
             value={formatCurrency(stats.savings)}
             accentColor={colors.accent.green}
             onClick={() => navigate('/budget')}
             icon={AccountBalanceWallet}
+            subtitle={stats.budgetLimit > 0 ? `of ${formatCurrency(stats.budgetLimit)}` : 'set a budget'}
+          />
+        </Grid>
+
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <StatsCard
+            title="Upcoming Renewals"
+            value={stats.upcomingRenewals}
+            accentColor={colors.accent.orange}
+            onClick={() => navigate('/alerts')}
+            icon={NotificationsNone}
+            subtitle="next 7 days"
           />
         </Grid>
       </Grid>
 
       {/* ============================================
-          MAIN CONTENT - Two Columns (Matched Heights)
+          BUDGET PROGRESS BAR (Compact strip)
       ============================================ */}
-      <Grid container spacing={2.5} sx={{ alignItems: 'stretch' }}>
-        {/* Left Column - Subscriptions List */}
-        <Grid item xs={12} lg={7}>
+      {stats.budgetLimit > 0 && (
+        <Card
+          sx={{
+            ...glassCard,
+            mb: SECTION_GAP,
+            '&:hover': {
+              ...glassCard['&:hover'],
+              transform: 'none',
+            },
+          }}
+        >
+          <CardContent sx={{ px: CARD_PADDING, py: 2, '&:last-child': { pb: 2 } }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.25 }}>
+              <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: colors.text.secondary }}>
+                Budget Usage
+              </Typography>
+              <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: budgetColor }}>
+                {budgetUsage.toFixed(0)}%
+              </Typography>
+            </Box>
+            <LinearProgress
+              variant="determinate"
+              value={budgetUsage}
+              sx={{
+                height: 6,
+                borderRadius: 3,
+                bgcolor: 'rgba(255, 255, 255, 0.06)',
+                '& .MuiLinearProgress-bar': {
+                  bgcolor: budgetColor,
+                  borderRadius: 3,
+                  transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                },
+              }}
+            />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.75 }}>
+              <Typography sx={{ fontSize: '0.6875rem', color: colors.text.dim }}>
+                {formatCurrency(stats.monthlySpend)} spent
+              </Typography>
+              <Typography sx={{ fontSize: '0.6875rem', color: colors.text.dim }}>
+                {formatCurrency(stats.budgetLimit)} limit
+              </Typography>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ============================================
+          MAIN CONTENT - Two Columns
+          Left: Active Subscriptions (60%)
+          Right: Renewal Calendar (40%)
+      ============================================ */}
+      <Grid container spacing={CARD_GAP} sx={{ alignItems: 'stretch' }}>
+        {/* ---- LEFT: Active Subscriptions ---- */}
+        <Grid size={{ xs: 12, md: 7 }}>
           <Card
             sx={{
-              bgcolor: colors.bg.card,
-              borderRadius: borderRadius.lg,
-              border: `1px solid ${colors.border.default}`,
-              boxShadow: shadows.sm,
-              height: CARD_HEIGHT,
+              ...glassCard,
+              minHeight: MAIN_CARD_MIN_HEIGHT,
+              height: '100%',
               display: 'flex',
               flexDirection: 'column',
+              '&:hover': {
+                ...glassCard['&:hover'],
+                transform: 'none',
+              },
             }}
           >
-            {/* Card Header - FIXED ALIGNMENT */}
+            {/* Card Header */}
             <Box
               sx={{
-                px: 2.5,
-                py: 1.75,
+                px: CARD_PADDING,
+                py: 2.5,
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
@@ -562,56 +775,69 @@ const Dashboard = () => {
                 flexShrink: 0,
               }}
             >
-              <Typography
-                sx={{
-                  fontWeight: typography.fontWeight.semibold,
-                  color: colors.text.primary,
-                  fontSize: typography.fontSize.lg,
-                }}
-              >
-                Active Subscriptions
-              </Typography>
+              <Box>
+                <Typography
+                  sx={{
+                    fontWeight: 600,
+                    color: colors.text.primary,
+                    fontSize: '1.125rem',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  Active Subscriptions
+                </Typography>
+                <Typography sx={{ fontSize: '0.75rem', color: colors.text.dim, mt: 0.25 }}>
+                  {subscriptions.length} service{subscriptions.length !== 1 ? 's' : ''} tracked
+                </Typography>
+              </Box>
               <Button
-                variant="contained"
                 size="small"
-                startIcon={<Add sx={{ fontSize: 16 }} />}
-                onClick={() => navigate('/subscriptions/add')}
+                endIcon={<ArrowForward sx={{ fontSize: 14 }} />}
+                onClick={() => navigate('/subscriptions')}
                 sx={{
-                  bgcolor: colors.primary,
-                  fontSize: typography.fontSize.sm,
-                  fontWeight: typography.fontWeight.medium,
-                  px: 1.75,
-                  py: 0.5,
-                  minHeight: 32,
-                  borderRadius: borderRadius.md,
+                  color: colors.text.muted,
                   textTransform: 'none',
-                  boxShadow: 'none',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                  borderRadius: borderRadius.md,
+                  px: 1.5,
                   '&:hover': {
-                    bgcolor: colors.primaryLight,
+                    color: colors.text.primary,
+                    bgcolor: 'rgba(255, 255, 255, 0.04)',
                   },
-                  transition: transitions.fast,
                 }}
               >
-                Add New
+                View all
               </Button>
             </Box>
 
-            {/* Subscription count */}
-            <Box sx={{ px: 2.5, py: 1, borderBottom: `1px solid ${colors.border.divider}`, flexShrink: 0 }}>
-              <Typography sx={{ fontSize: typography.fontSize.xs, color: colors.text.muted }}>
-                {subscriptions.length} subscription{subscriptions.length !== 1 ? 's' : ''}
-              </Typography>
-            </Box>
-
-            {/* Subscription List - Scrollable */}
+            {/* Subscription List */}
             <CardContent sx={{ p: 0, flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               {subscriptions.length === 0 ? (
-                <Box sx={{ p: 4, textAlign: 'center', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <Typography sx={{ color: colors.text.secondary, mb: 0.5, fontSize: typography.fontSize.base }}>
+                <Box sx={{
+                  p: 5, textAlign: 'center', flex: 1,
+                  display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+                }}>
+                  <Box
+                    sx={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: borderRadius.xl,
+                      bgcolor: 'rgba(255, 255, 255, 0.03)',
+                      border: `1px dashed ${colors.border.hover}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      mb: 2.5,
+                    }}
+                  >
+                    <CreditCard sx={{ fontSize: 28, color: colors.text.dim }} />
+                  </Box>
+                  <Typography sx={{ color: colors.text.secondary, mb: 0.5, fontSize: '0.9375rem', fontWeight: 500 }}>
                     No subscriptions yet
                   </Typography>
-                  <Typography sx={{ color: colors.text.dim, fontSize: typography.fontSize.sm, mb: 2 }}>
-                    Track your first subscription to get started
+                  <Typography sx={{ color: colors.text.dim, fontSize: '0.8125rem', mb: 3, maxWidth: 260 }}>
+                    Start tracking your subscriptions to see spending insights
                   </Typography>
                   <Button
                     variant="outlined"
@@ -621,16 +847,16 @@ const Dashboard = () => {
                     sx={{
                       borderColor: colors.border.hover,
                       color: colors.text.secondary,
-                      alignSelf: 'center',
                       borderRadius: borderRadius.md,
                       textTransform: 'none',
+                      px: 2.5,
                       '&:hover': {
                         borderColor: colors.text.muted,
-                        bgcolor: colors.bg.cardHover,
+                        bgcolor: 'rgba(255, 255, 255, 0.04)',
                       },
                     }}
                   >
-                    Add Subscription
+                    Add Your First Subscription
                   </Button>
                 </Box>
               ) : (
@@ -638,18 +864,12 @@ const Dashboard = () => {
                   sx={{
                     flex: 1,
                     overflowY: 'auto',
-                    '&::-webkit-scrollbar': {
-                      width: '3px',
-                    },
-                    '&::-webkit-scrollbar-track': {
-                      bgcolor: 'transparent',
-                    },
+                    '&::-webkit-scrollbar': { width: '4px' },
+                    '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
                     '&::-webkit-scrollbar-thumb': {
-                      bgcolor: colors.border.hover,
+                      bgcolor: 'rgba(255, 255, 255, 0.08)',
                       borderRadius: '2px',
-                    },
-                    '&::-webkit-scrollbar-thumb:hover': {
-                      bgcolor: colors.text.dim,
+                      '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.15)' },
                     },
                   }}
                 >
@@ -663,73 +883,54 @@ const Dashboard = () => {
                   ))}
                 </Box>
               )}
-
-              {/* View All link */}
-              {subscriptions.length > 0 && (
-                <Box
-                  onClick={() => navigate('/subscriptions')}
-                  sx={{
-                    px: 2.5,
-                    py: 1.25,
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    borderTop: `1px solid ${colors.border.default}`,
-                    transition: transitions.fast,
-                    flexShrink: 0,
-                    '&:hover': {
-                      bgcolor: colors.bg.cardHover,
-                    },
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      color: colors.text.muted,
-                      fontSize: typography.fontSize.sm,
-                      fontWeight: typography.fontWeight.medium,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 0.5,
-                      '&:hover': {
-                        color: colors.text.secondary,
-                      },
-                    }}
-                  >
-                    View all subscriptions
-                    <ArrowForward sx={{ fontSize: 14 }} />
-                  </Typography>
-                </Box>
-              )}
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Right Column - Calendar */}
-        <Grid item xs={12} lg={5}>
+        {/* ---- RIGHT: Renewal Calendar ---- */}
+        <Grid size={{ xs: 12, md: 5 }}>
           <Card
             sx={{
-              bgcolor: colors.bg.card,
-              borderRadius: borderRadius.lg,
-              border: `1px solid ${colors.border.default}`,
-              boxShadow: shadows.sm,
-              height: CARD_HEIGHT,
+              ...glassCard,
+              minHeight: MAIN_CARD_MIN_HEIGHT,
+              height: '100%',
               display: 'flex',
               flexDirection: 'column',
+              '&:hover': {
+                ...glassCard['&:hover'],
+                transform: 'none',
+              },
             }}
           >
-            <CardContent sx={{ p: 2.5, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <CardContent sx={{ p: CARD_PADDING, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               {/* Header */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, flexShrink: 0 }}>
-                <CalendarToday sx={{ fontSize: 18, color: colors.text.muted }} />
-                <Typography
-                  sx={{
-                    fontWeight: typography.fontWeight.semibold,
-                    color: colors.text.primary,
-                    fontSize: typography.fontSize.lg,
-                  }}
-                >
-                  Renewal Calendar
-                </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexShrink: 0 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                  <Box
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: borderRadius.md,
+                      bgcolor: `${colors.accent.indigo}12`,
+                      border: `1px solid ${colors.accent.indigo}20`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <CalendarToday sx={{ fontSize: 16, color: colors.accent.indigo }} />
+                  </Box>
+                  <Typography
+                    sx={{
+                      fontWeight: 600,
+                      color: colors.text.primary,
+                      fontSize: '1.125rem',
+                      letterSpacing: '-0.01em',
+                    }}
+                  >
+                    Renewal Calendar
+                  </Typography>
+                </Box>
               </Box>
 
               {/* Calendar */}
@@ -744,15 +945,16 @@ const Dashboard = () => {
                     fontFamily: 'inherit',
                   },
                   '& .react-calendar__navigation': {
-                    mb: 0.5,
+                    mb: 0.75,
                   },
                   '& .react-calendar__navigation button': {
                     color: colors.text.secondary,
-                    fontSize: typography.fontSize.sm,
-                    minWidth: 32,
-                    borderRadius: borderRadius.sm,
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    minWidth: 36,
+                    borderRadius: borderRadius.md,
                     '&:hover': {
-                      bgcolor: colors.bg.cardHover,
+                      bgcolor: 'rgba(255, 255, 255, 0.06)',
                     },
                     '&:disabled': {
                       bgcolor: 'transparent',
@@ -761,33 +963,36 @@ const Dashboard = () => {
                   },
                   '& .react-calendar__month-view__weekdays': {
                     textTransform: 'uppercase',
-                    fontSize: '10px',
-                    fontWeight: typography.fontWeight.medium,
+                    fontSize: '0.625rem',
+                    fontWeight: 600,
                     color: colors.text.dim,
+                    letterSpacing: '0.05em',
                   },
                   '& .react-calendar__month-view__weekdays abbr': {
                     textDecoration: 'none',
                   },
                   '& .react-calendar__tile': {
                     color: colors.text.secondary,
-                    fontSize: typography.fontSize.sm,
-                    padding: '0.4em 0.2em',
-                    borderRadius: borderRadius.sm,
+                    fontSize: '0.8125rem',
+                    padding: '0.5em 0.25em',
+                    borderRadius: borderRadius.md,
+                    transition: 'all 0.1s ease',
                     '&:hover': {
-                      bgcolor: colors.bg.cardHover,
+                      bgcolor: 'rgba(255, 255, 255, 0.06)',
                     },
                   },
                   '& .react-calendar__tile--now': {
-                    bgcolor: colors.primaryMuted,
+                    bgcolor: `${colors.primary}18`,
                     color: colors.text.primary,
-                    fontWeight: typography.fontWeight.medium,
+                    fontWeight: 600,
                   },
                   '& .react-calendar__tile--active': {
                     bgcolor: `${colors.primary} !important`,
-                    color: `${colors.white} !important`,
+                    color: `#fff !important`,
+                    fontWeight: 600,
                   },
                   '& .react-calendar__tile.has-renewal': {
-                    fontWeight: typography.fontWeight.medium,
+                    fontWeight: 600,
                     color: colors.text.primary,
                   },
                 }}
@@ -804,20 +1009,20 @@ const Dashboard = () => {
               {selectedDateSubscriptions.length > 0 && (
                 <Box
                   sx={{
-                    mt: 1.5,
-                    pt: 1.5,
+                    mt: 2,
+                    pt: 2,
                     borderTop: `1px solid ${colors.border.default}`,
                     flexShrink: 0,
                   }}
                 >
                   <Typography
                     sx={{
-                      fontSize: typography.fontSize.xs,
-                      fontWeight: typography.fontWeight.medium,
+                      fontSize: '0.6875rem',
+                      fontWeight: 600,
                       color: colors.text.dim,
                       textTransform: 'uppercase',
-                      letterSpacing: '0.03em',
-                      mb: 1,
+                      letterSpacing: '0.06em',
+                      mb: 1.25,
                     }}
                   >
                     Renewals on {format(selectedDate, 'MMM d')}
@@ -830,14 +1035,14 @@ const Dashboard = () => {
                         display: 'flex',
                         alignItems: 'center',
                         gap: 1.5,
-                        py: 0.75,
-                        px: 1.25,
+                        py: 0.875,
+                        px: 1.5,
                         borderRadius: borderRadius.md,
                         cursor: 'pointer',
-                        transition: transitions.fast,
+                        transition: 'all 0.1s ease',
                         mb: 0.5,
                         '&:hover': {
-                          bgcolor: colors.bg.cardHover,
+                          bgcolor: 'rgba(255, 255, 255, 0.04)',
                         },
                         '&:last-child': { mb: 0 },
                       }}
@@ -845,10 +1050,11 @@ const Dashboard = () => {
                       <Avatar
                         src={sub.subscriptionLogo}
                         sx={{
-                          width: 28,
-                          height: 28,
+                          width: 30,
+                          height: 30,
                           bgcolor: colors.bg.tertiary,
-                          fontSize: typography.fontSize.xs,
+                          fontSize: '0.6875rem',
+                          fontWeight: 600,
                           color: colors.text.secondary,
                           border: `1px solid ${colors.border.default}`,
                         }}
@@ -858,8 +1064,8 @@ const Dashboard = () => {
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography
                           sx={{
-                            fontSize: typography.fontSize.sm,
-                            fontWeight: typography.fontWeight.medium,
+                            fontSize: '0.8125rem',
+                            fontWeight: 500,
                             color: colors.text.primary,
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
@@ -871,10 +1077,11 @@ const Dashboard = () => {
                       </Box>
                       <Typography
                         sx={{
-                          fontSize: typography.fontSize.sm,
-                          fontWeight: typography.fontWeight.semibold,
+                          fontSize: '0.8125rem',
+                          fontWeight: 600,
                           color: colors.text.primary,
                           flexShrink: 0,
+                          fontVariantNumeric: 'tabular-nums',
                         }}
                       >
                         {formatCurrency(sub.customPrice || sub.originalPrice)}

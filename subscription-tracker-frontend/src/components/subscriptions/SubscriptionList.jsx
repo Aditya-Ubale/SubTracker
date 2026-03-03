@@ -65,7 +65,11 @@ const getRenewalStyle = (daysUntilRenewal) => {
   if (daysUntilRenewal === null || daysUntilRenewal === undefined) {
     return { bg: 'rgba(107, 114, 128, 0.1)', color: 'rgba(156, 163, 175, 0.8)', label: 'N/A' };
   }
-  if (daysUntilRenewal <= 0) {
+  if (daysUntilRenewal < 0) {
+    const overdueDays = Math.abs(daysUntilRenewal);
+    return { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', label: `Overdue ${overdueDays}d` };
+  }
+  if (daysUntilRenewal === 0) {
     return { bg: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', label: 'Due Today' };
   }
   if (daysUntilRenewal <= 3) {
