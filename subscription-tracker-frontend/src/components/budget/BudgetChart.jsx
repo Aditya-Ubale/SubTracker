@@ -32,10 +32,12 @@ const BudgetChart = ({ data = [], currentSubscriptionTotal = 0, currentIncome = 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  // Generate chart data for last 6 months
+  // Generate chart data - only months with real data + current month
   const generateChartData = () => {
     const now = new Date();
-    const chartData = [];
+    const currentMonthName = MONTH_NAMES[now.getMonth()];
+    const currentYear = now.getFullYear();
+    const currentKey = `${currentMonthName} ${currentYear}`;
 
     // Create a map of existing history data by "MONTH YEAR" key
     const historyMap = {};
@@ -50,43 +52,40 @@ const BudgetChart = ({ data = [], currentSubscriptionTotal = 0, currentIncome = 
       });
     }
 
-    // Generate last 6 months
-    for (let i = 5; i >= 0; i--) {
+    const chartData = [];
+
+    // Add past months that have real history data (in chronological order)
+    for (let i = 5; i >= 1; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthName = MONTH_NAMES[date.getMonth()];
       const year = date.getFullYear();
       const key = `${monthName} ${year}`;
 
-      // Check if we have actual data for this month
+      // Only include if real data exists for this month
       if (historyMap[key]) {
         chartData.push({
           name: key,
           ...historyMap[key],
-          // Use current subscription total for current month if history shows 0
-          Subscriptions: i === 0 && historyMap[key].Subscriptions === 0
-            ? currentSubscriptionTotal
-            : historyMap[key].Subscriptions,
         });
-      } else {
-        // Use current data for current month, zeros for past months with no data
-        if (i === 0) {
-          // Current month - use actual values
-          chartData.push({
-            name: key,
-            Expenses: currentExpenses,
-            Income: currentIncome,
-            Subscriptions: currentSubscriptionTotal,
-          });
-        } else {
-          // Past months with no data - show zeros
-          chartData.push({
-            name: key,
-            Expenses: 0,
-            Income: 0,
-            Subscriptions: 0,
-          });
-        }
       }
+    }
+
+    // Always add the current month
+    if (historyMap[currentKey]) {
+      chartData.push({
+        name: currentKey,
+        ...historyMap[currentKey],
+        Subscriptions: historyMap[currentKey].Subscriptions === 0
+          ? currentSubscriptionTotal
+          : historyMap[currentKey].Subscriptions,
+      });
+    } else {
+      chartData.push({
+        name: currentKey,
+        Expenses: currentExpenses,
+        Income: currentIncome,
+        Subscriptions: currentSubscriptionTotal,
+      });
     }
 
     return chartData;
