@@ -102,6 +102,13 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  // Update user data (after profile changes)
+  const updateUser = (updatedData) => {
+    const newUser = { ...user, ...updatedData };
+    setUser(newUser);
+    localStorage.setItem('user', JSON.stringify(newUser));
+  };
+
   // Check if authenticated
   const isAuthenticated = !!token && !!user;
 
@@ -113,6 +120,7 @@ export const AuthProvider = ({ children }) => {
     login,
     signup,
     logout,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
