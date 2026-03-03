@@ -30,7 +30,7 @@ public class ScraperTestController {
 
         String[] services = {
                 "Netflix", "Amazon Prime", "Spotify", "JioHotstar",
-                "DeepSeek", "Perplexity", "Gemini",
+                "DeepSeek", "Gemini",
                 "Google Workspace", "Microsoft 365"
         };
 
@@ -98,13 +98,12 @@ public class ScraperTestController {
                 "Spotify - 4 plans (Lite, Standard, Platinum, Student)",
                 "JioHotstar - 3 plans (Mobile, Super, Premium)",
                 "DeepSeek - 3 plans (Chat, Reasoner, Speciale)",
-                "Perplexity - 3 plans (Pro, Enterprise, Enterprise Max)",
                 "Gemini - 4 plans (Free, AI Plus, AI Pro, AI Ultra)",
                 "Google Workspace - 3 plans (Starter, Standard, Plus)",
                 "Microsoft 365 - 3 plans (Personal, Family, Premium)"
         });
 
-        info.put("totalPlans", 32);
+        info.put("totalPlans", 29);
 
         return ResponseEntity.ok(info);
     }

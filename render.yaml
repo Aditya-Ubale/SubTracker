@@ -1,0 +1,39 @@
+# ============================================
+# Render Blueprint - SubTracker Backend
+# ============================================
+# This file defines the Render web service.
+# Place at repo root for auto-detection.
+# ============================================
+
+services:
+  - type: web
+    name: subtracker-backend
+    runtime: docker
+    repo: https://github.com/YOUR_USERNAME/Subscription-tracker
+    rootDir: subscription-tracker-backend
+    plan: free
+    region: oregon
+    branch: main
+    dockerfilePath: ./Dockerfile.render
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+    healthCheckPath: /api/health

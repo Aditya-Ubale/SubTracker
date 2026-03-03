@@ -219,7 +219,7 @@ public class OtpService {
     /**
      * Cleanup expired OTPs - runs every hour
      */
-    @Scheduled(fixedRate = 3600000) // Every hour
+    @Scheduled(fixedRate = 3600000, initialDelay = 300000) // Every hour, 5 min startup delay
     @Transactional
     public void cleanupExpiredOtps() {
         otpRepository.deleteExpiredOtps(LocalDateTime.now());

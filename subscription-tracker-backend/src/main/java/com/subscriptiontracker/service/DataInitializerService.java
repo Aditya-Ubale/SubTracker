@@ -31,9 +31,25 @@ public class DataInitializerService implements CommandLineRunner {
 
         @Override
         public void run(String... args) throws Exception {
+                cleanupRemovedSubscriptions();
                 initializeSubscriptions();
                 checkAndTriggerScraping();
                 initializeAdmin(); // Initialize default admin
+        }
+
+        /**
+         * Remove subscriptions that are no longer supported.
+         * Cascades to subscription_plans and price_history via JPA.
+         */
+        private void cleanupRemovedSubscriptions() {
+                try {
+                        subscriptionRepository.findByName("Perplexity").ifPresent(sub -> {
+                                subscriptionRepository.delete(sub);
+                                logger.info("Removed unsupported subscription from database: Perplexity");
+                        });
+                } catch (Exception e) {
+                        logger.warn("Failed to cleanup removed subscriptions: {}", e.getMessage());
+                }
         }
 
         private void initializeAdmin() {
@@ -135,20 +151,6 @@ public class DataInitializerService implements CommandLineRunner {
                                                 .build(),
 
                                 // AI Services
-                                Subscription.builder()
-                                                .name("Perplexity")
-                                                .description("AI-powered answer engine for research and discovery.")
-                                                .logoUrl("https://www.perplexity.ai/favicon.ico")
-                                                .websiteUrl("https://www.perplexity.ai/pro")
-                                                .category("AI")
-                                                .priceMonthly(1650.0)
-                                                .priceYearly(16500.0)
-                                                .currency("INR")
-                                                .features("Unlimited Pro searches, GPT-4 access, File uploads, API access")
-                                                .maxDevices(5)
-                                                .streamingQuality("N/A")
-                                                .build(),
-
                                 Subscription.builder()
                                                 .name("DeepSeek")
                                                 .description("Advanced AI assistant with powerful reasoning capabilities.")

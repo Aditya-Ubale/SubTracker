@@ -1,29 +1,68 @@
 package com.subscriptiontracker.service;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.*;
 
 @Service
 public class EmailService {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
+    private static final String RESEND_API_URL = "https://api.resend.com/emails";
 
-    @Autowired
-    private JavaMailSender mailSender;
+    @Value("${resend.api.key:}")
+    private String resendApiKey;
 
-    @Value("${app.email.from}")
+    @Value("${app.email.from:onboarding@resend.dev}")
     private String fromEmail;
 
-    @Value("${app.email.from-name:Subscription Tracker}")
+    @Value("${app.email.from-name:SubTracker}")
     private String fromName;
+
+    private final RestTemplate restTemplate = new RestTemplate();
+
+    /**
+     * Send an HTML email via Resend HTTP API
+     * Uses HTTPS (port 443) - works on Render free tier
+     * (SMTP ports 25/465/587 are blocked on Render)
+     */
+    private void sendViaResend(String toEmail, String subject, String htmlBody) {
+        if (resendApiKey == null || resendApiKey.isEmpty()) {
+            logger.error("Resend API key is not configured. Set RESEND_API_KEY environment variable.");
+            throw new RuntimeException("Email service not configured");
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Bearer " + resendApiKey);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("from", fromName + " <" + fromEmail + ">");
+        body.put("to", List.of(toEmail));
+        body.put("subject", subject);
+        body.put("html", htmlBody);
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity(RESEND_API_URL, request, String.class);
+            if (response.getStatusCode().is2xxSuccessful()) {
+                logger.info("Email sent successfully to {} via Resend", toEmail);
+            } else {
+                logger.error("Resend API returned status {}: {}", response.getStatusCode(), response.getBody());
+                throw new RuntimeException("Failed to send email via Resend");
+            }
+        } catch (Exception e) {
+            logger.error("Failed to send email to {} via Resend: {}", toEmail, e.getMessage());
+            throw new RuntimeException("Failed to send email: " + e.getMessage());
+        }
+    }
 
     /**
      * Send a simple HTML email
@@ -31,21 +70,9 @@ public class EmailService {
     @Async
     public void sendEmail(String toEmail, String subject, String htmlBody) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setFrom(fromEmail, fromName);
-            helper.setTo(toEmail);
-            helper.setSubject(subject);
-            helper.setText(htmlBody, true); // true = HTML
-
-            mailSender.send(message);
-            logger.info("Email sent successfully to {}", toEmail);
-
-        } catch (MessagingException e) {
-            logger.error("Failed to send email to {}: {}", toEmail, e.getMessage());
+            sendViaResend(toEmail, subject, htmlBody);
         } catch (Exception e) {
-            logger.error("Error sending email to {}: {}", toEmail, e.getMessage());
+            logger.error("Failed to send email to {}: {}", toEmail, e.getMessage());
         }
     }
 
@@ -84,28 +111,14 @@ public class EmailService {
     }
 
     /**
-     * Send OTP verification email
+     * Send OTP verification email (synchronous - must complete before response)
      */
     public void sendOtpEmail(String toEmail, String otpCode) {
-        String subject = "🔐 Your Verification Code - Subscription Tracker";
+        String subject = "🔐 Your Verification Code - SubTracker";
         String body = buildOtpTemplate(otpCode);
-        // Send synchronously for OTP (not @Async) to ensure delivery before response
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setFrom(fromEmail, fromName);
-            helper.setTo(toEmail);
-            helper.setSubject(subject);
-            helper.setText(body, true);
-
-            mailSender.send(message);
-            logger.info("OTP email sent successfully to {}", toEmail);
-
-        } catch (Exception e) {
-            logger.error("Failed to send OTP email to {}: {}", toEmail, e.getMessage());
-            throw new RuntimeException("Failed to send OTP email");
-        }
+        // Send synchronously for OTP to ensure delivery before response
+        sendViaResend(toEmail, subject, body);
+        logger.info("OTP email sent successfully to {}", toEmail);
     }
 
     /**
