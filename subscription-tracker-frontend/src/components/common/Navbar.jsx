@@ -152,7 +152,7 @@ const Navbar = ({ onMenuClick }) => {
             </Box>
             <Divider sx={{ borderColor: '#333333' }} />
             <MenuItem
-              onClick={handleClose}
+              onClick={() => { navigate('/settings'); handleClose(); }}
               sx={{
                 py: 1.5,
                 '&:hover': {
@@ -166,7 +166,7 @@ const Navbar = ({ onMenuClick }) => {
               <Typography color="#E5E5E5">Profile</Typography>
             </MenuItem>
             <MenuItem
-              onClick={handleClose}
+              onClick={() => { navigate('/settings'); handleClose(); }}
               sx={{
                 py: 1.5,
                 '&:hover': {
