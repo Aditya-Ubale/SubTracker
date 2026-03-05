@@ -66,6 +66,49 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(profileDTO));
     }
 
+    // Update current user profile (name)
+    @PutMapping("/me")
+    public ResponseEntity<ApiResponse<UserProfileDTO>> updateProfile(
+            @RequestBody java.util.Map<String, String> updates) {
+        User user = authService.getCurrentUser();
+
+        if (updates.containsKey("name")) {
+            String newName = updates.get("name").trim();
+            if (newName.length() < 2) {
+                throw new com.subscriptiontracker.exception.BadRequestException("Name must be at least 2 characters");
+            }
+            user.setName(newName);
+        }
+
+        User savedUser = authService.saveUser(user);
+
+        UserProfileDTO profileDTO = UserProfileDTO.builder()
+                .id(savedUser.getId())
+                .name(savedUser.getName())
+                .email(savedUser.getEmail())
+                .monthlyIncome(savedUser.getMonthlyIncome())
+                .monthlyExpenses(savedUser.getMonthlyExpenses())
+                .createdAt(savedUser.getCreatedAt())
+                .build();
+
+        return ResponseEntity.ok(ApiResponse.success("Profile updated successfully!", profileDTO));
+    }
+
+    // Change password (from settings - requires current password)
+    @PutMapping("/change-password")
+    public ResponseEntity<ApiResponse<String>> changePassword(@RequestBody java.util.Map<String, String> passwords) {
+        String currentPassword = passwords.get("currentPassword");
+        String newPassword = passwords.get("newPassword");
+
+        if (currentPassword == null || newPassword == null) {
+            throw new com.subscriptiontracker.exception.BadRequestException(
+                    "Current password and new password are required");
+        }
+
+        String message = authService.changePassword(currentPassword, newPassword);
+        return ResponseEntity.ok(ApiResponse.success(message, null));
+    }
+
     // Forgot Password - Send OTP to registered email
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponse<String>> forgotPassword(

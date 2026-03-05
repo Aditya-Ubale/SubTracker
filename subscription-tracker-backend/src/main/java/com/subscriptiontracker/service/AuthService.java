@@ -229,4 +229,40 @@ public class AuthService {
         logger.info("Password reset successful for: {}", email);
         return "Password reset successful! You can now login with your new password.";
     }
+
+    /**
+     * Save user entity (for profile updates)
+     */
+    @Transactional
+    public User saveUser(User user) {
+        return userRepository.save(user);
+    }
+
+    /**
+     * Change password (requires current password verification)
+     */
+    @Transactional
+    public String changePassword(String currentPassword, String newPassword) {
+        User user = getCurrentUser();
+
+        // Verify current password
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new BadRequestException("Current password is incorrect.");
+        }
+
+        // Validate new password
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new BadRequestException("New password must be at least 6 characters long.");
+        }
+        if (newPassword.contains(" ")) {
+            throw new BadRequestException("Password cannot contain spaces.");
+        }
+
+        // Update password
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        logger.info("Password changed successfully for user: {}", user.getEmail());
+        return "Password changed successfully!";
+    }
 }
