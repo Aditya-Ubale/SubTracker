@@ -164,7 +164,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
             primary={item.label}
             primaryTypographyProps={{
               fontSize: '0.8125rem',
-              fontWeight: active ? 600 : 400,
+              fontWeight: active ? 700 : 500,
               color: active ? '#fff' : 'rgba(255, 255, 255, 0.6)',
               transition: 'color 0.2s ease',
               letterSpacing: '-0.01em',
@@ -239,7 +239,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
       )}
 
       {/* Navigation */}
-      <Box sx={{ px: 1.5, py: 0.5, flex: 1 }}>
+      <Box sx={{ px: 1.5, py: 0.5 }}>
         {NAV_SECTIONS.map((section, idx) => (
           <Box key={section.id} sx={{ mb: idx === NAV_SECTIONS.length - 1 ? 0 : 0.5 }}>
             {/* Section label */}
@@ -250,7 +250,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
                   pt: idx > 0 ? 2 : 0.5,
                   pb: 0.75,
                   fontSize: '0.6rem',
-                  fontWeight: 700,
+                  fontWeight: 800,
                   color: 'rgba(255, 255, 255, 0.25)',
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
@@ -282,7 +282,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
       </Box>
 
       {/* Bottom Section */}
-      <Box sx={{ px: 1.5, pb: 2, pt: 1 }}>
+      <Box sx={{ px: 1.5, pb: 2, pt: 1, mt: 'auto' }}>
         {/* Divider */}
         <Box
           sx={{
@@ -341,7 +341,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography
                   sx={{
-                    fontWeight: 500,
+                    fontWeight: 600,
                     color: 'rgba(255, 255, 255, 0.85)',
                     fontSize: '0.8125rem',
                     overflow: 'hidden',
