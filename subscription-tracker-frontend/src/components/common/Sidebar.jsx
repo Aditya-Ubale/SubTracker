@@ -2,7 +2,7 @@
  * Sidebar - Modern Collapsible Navigation
  * 
  * Design: Uses centralized theme from /styles/theme.js
- * - Collapsible (72px collapsed, 240px expanded)
+ * - Collapsible (68px collapsed, 230px expanded)
  * - Smooth animations
  * - Clean iconography
  * - SubTracker brand colors (red primary)
@@ -115,16 +115,18 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
           minHeight: 40,
           justifyContent: isCollapsed ? 'center' : 'flex-start',
           position: 'relative',
-          bgcolor: active ? 'rgba(220, 38, 38, 0.08)' : 'transparent',
-          transition: 'all 0.18s ease',
+          bgcolor: active ? 'rgba(220, 38, 38, 0.1)' : 'transparent',
+          transition: 'all 0.2s ease',
+          transform: 'scale(1)',
 
           '&:hover': {
-            bgcolor: active ? 'rgba(220, 38, 38, 0.12)' : 'rgba(255, 255, 255, 0.04)',
-            '& .nav-icon': {
-              color: active ? colors.primary : colors.text.secondary,
+            bgcolor: 'rgba(220, 38, 38, 0.08)',
+            transform: 'scale(1.03)',
+            '& .MuiListItemIcon-root .MuiSvgIcon-root': {
+              color: '#E50914',
             },
-            '& .nav-label': {
-              color: colors.text.primary,
+            '& .MuiListItemText-primary': {
+              color: '#fff',
             },
           },
 
@@ -138,8 +140,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
               bottom: '20%',
               width: 3,
               borderRadius: '0 3px 3px 0',
-              bgcolor: colors.primary,
-              boxShadow: '0 0 8px rgba(220, 38, 38, 0.3)',
+              bgcolor: '#E50914',
             }
             : {},
         }}
@@ -151,23 +152,21 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
           }}
         >
           <Icon
-            className="nav-icon"
             sx={{
               fontSize: 20,
-              color: active ? colors.primary : colors.text.muted,
-              transition: 'color 0.18s ease',
+              color: active ? '#E50914' : 'rgba(255, 255, 255, 0.45)',
+              transition: 'color 0.2s ease',
             }}
           />
         </ListItemIcon>
         {!isCollapsed && (
           <ListItemText
             primary={item.label}
-            className="nav-label"
             primaryTypographyProps={{
               fontSize: '0.8125rem',
               fontWeight: active ? 600 : 400,
-              color: active ? colors.text.primary : colors.text.secondary,
-              transition: 'color 0.18s ease, font-weight 0.18s ease',
+              color: active ? '#fff' : 'rgba(255, 255, 255, 0.6)',
+              transition: 'color 0.2s ease',
               letterSpacing: '-0.01em',
             }}
           />
@@ -210,7 +209,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
         <Box
           sx={{
             px: isCollapsed ? 1.5 : 2,
-            py: 1.5,
+            py: 1,
             display: 'flex',
             alignItems: 'center',
             justifyContent: isCollapsed ? 'center' : 'flex-end',
@@ -221,16 +220,15 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
               size="small"
               onClick={() => setCollapsed(!collapsed)}
               sx={{
-                color: colors.text.dim,
-                width: 28,
-                height: 28,
+                color: 'rgba(255,255,255,0.3)',
+                width: 26,
+                height: 26,
                 borderRadius: '6px',
-                border: `1px solid ${colors.border.default}`,
-                transition: 'all 0.18s ease',
+                transition: 'all 0.2s ease',
                 '&:hover': {
-                  bgcolor: colors.bg.cardHover,
-                  color: colors.text.secondary,
-                  borderColor: colors.border.hover,
+                  bgcolor: 'rgba(220, 38, 38, 0.08)',
+                  color: '#E50914',
+                  transform: 'scale(1.1)',
                 },
               }}
             >
@@ -243,7 +241,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
       {/* Navigation */}
       <Box sx={{ px: 1.5, py: 0.5, flex: 1 }}>
         {NAV_SECTIONS.map((section, idx) => (
-          <Box key={section.id} sx={{ mb: idx === NAV_SECTIONS.length - 1 ? 0 : 1 }}>
+          <Box key={section.id} sx={{ mb: idx === NAV_SECTIONS.length - 1 ? 0 : 0.5 }}>
             {/* Section label */}
             {section.label && !isCollapsed && (
               <Typography
@@ -251,10 +249,10 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
                   px: 1.5,
                   pt: idx > 0 ? 2 : 0.5,
                   pb: 0.75,
-                  fontSize: '0.625rem',
-                  fontWeight: 600,
-                  color: colors.text.dim,
-                  letterSpacing: '0.08em',
+                  fontSize: '0.6rem',
+                  fontWeight: 700,
+                  color: 'rgba(255, 255, 255, 0.25)',
+                  letterSpacing: '0.1em',
                   textTransform: 'uppercase',
                 }}
               >
@@ -269,7 +267,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
                   height: 1,
                   bgcolor: colors.border.default,
                   mx: 1.5,
-                  my: 1.5,
+                  my: 1,
                 }}
               />
             )}
@@ -289,7 +287,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
         <Box
           sx={{
             height: 1,
-            bgcolor: colors.border.default,
+            bgcolor: 'rgba(255, 255, 255, 0.05)',
             mb: 1.5,
             mx: 0.5,
           }}
@@ -306,38 +304,32 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
         <Box
           onClick={() => handleNavigation('/settings')}
           sx={{
-            mt: 2,
-            p: isCollapsed ? 1 : 1.25,
-            borderRadius: '10px',
-            bgcolor: 'rgba(255, 255, 255, 0.02)',
-            border: `1px solid ${colors.border.default}`,
+            mt: 1.5,
+            py: 1,
+            px: isCollapsed ? 0.75 : 1.25,
+            borderRadius: '8px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: isCollapsed ? 'center' : 'flex-start',
             gap: isCollapsed ? 0 : 1.25,
             cursor: 'pointer',
-            transition: 'all 0.18s ease',
+            transition: 'all 0.2s ease',
             '&:hover': {
-              bgcolor: 'rgba(255, 255, 255, 0.04)',
-              borderColor: colors.border.hover,
-              '& .user-avatar': {
-                borderColor: 'rgba(220, 38, 38, 0.4)',
-              },
+              bgcolor: 'rgba(220, 38, 38, 0.06)',
+              transform: 'scale(1.02)',
             },
           }}
         >
           <Tooltip title={isCollapsed ? user?.name : ''} placement="right">
             <Avatar
-              className="user-avatar"
               sx={{
-                width: isCollapsed ? 34 : 32,
-                height: isCollapsed ? 34 : 32,
-                bgcolor: 'rgba(220, 38, 38, 0.1)',
-                color: colors.primary,
+                width: isCollapsed ? 34 : 30,
+                height: isCollapsed ? 34 : 30,
+                bgcolor: 'rgba(220, 38, 38, 0.15)',
+                color: '#E50914',
                 fontSize: '0.8125rem',
                 fontWeight: 600,
-                border: '2px solid transparent',
-                transition: 'border-color 0.18s ease',
+                transition: 'all 0.2s ease',
               }}
             >
               {user?.name?.[0]?.toUpperCase() || 'U'}
@@ -350,20 +342,19 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
                 <Typography
                   sx={{
                     fontWeight: 500,
-                    color: colors.text.primary,
+                    color: 'rgba(255, 255, 255, 0.85)',
                     fontSize: '0.8125rem',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
                     lineHeight: 1.3,
-                    letterSpacing: '-0.01em',
                   }}
                 >
                   {user?.name || 'User'}
                 </Typography>
                 <Typography
                   sx={{
-                    color: colors.text.dim,
+                    color: 'rgba(255, 255, 255, 0.3)',
                     fontSize: '0.6875rem',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -380,14 +371,15 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
                   size="small"
                   onClick={(e) => { e.stopPropagation(); handleLogout(); }}
                   sx={{
-                    color: colors.text.dim,
-                    width: 28,
-                    height: 28,
+                    color: 'rgba(255, 255, 255, 0.25)',
+                    width: 26,
+                    height: 26,
                     borderRadius: '6px',
-                    transition: 'all 0.18s ease',
+                    transition: 'all 0.2s ease',
                     '&:hover': {
                       bgcolor: 'rgba(220, 38, 38, 0.1)',
-                      color: colors.primary,
+                      color: '#E50914',
+                      transform: 'scale(1.15)',
                     },
                   }}
                 >
@@ -418,10 +410,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
           height: '100vh',
           overflowY: 'auto',
           overflowX: 'hidden',
-          // Hide scrollbar
-          '&::-webkit-scrollbar': {
-            width: 0,
-          },
+          '&::-webkit-scrollbar': { width: 0 },
           scrollbarWidth: 'none',
         },
       }}
