@@ -195,13 +195,13 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
     <Box
       sx={{
         width: sidebarWidth,
-        minHeight: '100%',
-        display: 'flex',
-        flexDirection: 'column',
+        height: '100%',
         bgcolor: colors.bg.secondary,
         borderRight: `1px solid ${colors.border.default}`,
         transition: 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         pt: isMobile ? 0 : 8,
+        overflowY: 'auto',
+        overflowX: 'hidden',
       }}
     >
       {/* Collapse Toggle */}
@@ -282,7 +282,7 @@ const Sidebar = ({ open, onClose, variant = 'permanent' }) => {
       </Box>
 
       {/* Bottom Section */}
-      <Box sx={{ px: 1.5, pb: 2, pt: 1, mt: 'auto' }}>
+      <Box sx={{ px: 1.5, pb: 2, pt: 3 }}>
         {/* Divider */}
         <Box
           sx={{
