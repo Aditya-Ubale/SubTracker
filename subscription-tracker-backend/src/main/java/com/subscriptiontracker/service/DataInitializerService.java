@@ -62,22 +62,19 @@ public class DataInitializerService implements CommandLineRunner {
         }
 
         private void checkAndTriggerScraping() {
-                // Check if we have any subscription plans scraped
-                long planCount = subscriptionPlanRepository.count();
                 long subscriptionCount = subscriptionRepository.count();
 
-                if (subscriptionCount > 0 && planCount == 0) {
-                        logger.info("Subscriptions exist but no plans scraped yet. Triggering initial scraping...");
+                if (subscriptionCount > 0) {
+                        logger.info("Triggering price scraping for {} subscriptions (with fallback support)...",
+                                        subscriptionCount);
                         try {
                                 priceScraperService.scrapeAllPrices();
-                                logger.info("Initial price scraping completed. Plans scraped: {}",
+                                logger.info("Price scraping completed. Total plans: {}",
                                                 subscriptionPlanRepository.count());
                         } catch (Exception e) {
-                                logger.warn("Initial price scraping failed: {}. Prices will be updated on next scheduled run.",
+                                logger.warn("Price scraping failed: {}. Prices will be updated on next scheduled run.",
                                                 e.getMessage());
                         }
-                } else if (planCount > 0) {
-                        logger.info("Found {} existing subscription plans. Skipping initial scrape.", planCount);
                 }
         }
 
@@ -99,8 +96,8 @@ public class DataInitializerService implements CommandLineRunner {
                                                 .logoUrl("https://assets.nflxext.com/us/ffe/siteui/common/icons/nficon2016.ico")
                                                 .websiteUrl("https://www.netflix.com/in/")
                                                 .category("Streaming")
-                                                .priceMonthly(199.0)
-                                                .priceYearly(2388.0)
+                                                .priceMonthly(149.0)
+                                                .priceYearly(1788.0)
                                                 .currency("INR")
                                                 .features("Mobile plan, Basic plan, Standard plan, Premium plan available")
                                                 .maxDevices(4)
@@ -127,8 +124,8 @@ public class DataInitializerService implements CommandLineRunner {
                                                 .logoUrl("https://www.jiohotstar.com/favicon.ico")
                                                 .websiteUrl("https://www.jiohotstar.com/subscribe")
                                                 .category("Streaming")
-                                                .priceMonthly(149.0)
-                                                .priceYearly(1499.0)
+                                                .priceMonthly(79.0)
+                                                .priceYearly(499.0)
                                                 .currency("INR")
                                                 .features("Disney+ content, Live Sports, HBO Originals, Peacock content, 4K streaming")
                                                 .maxDevices(4)
@@ -142,8 +139,8 @@ public class DataInitializerService implements CommandLineRunner {
                                                 .logoUrl("https://www.spotify.com/favicon.ico")
                                                 .websiteUrl("https://www.spotify.com/in/premium/")
                                                 .category("Music")
-                                                .priceMonthly(119.0)
-                                                .priceYearly(1189.0)
+                                                .priceMonthly(99.0)
+                                                .priceYearly(1188.0)
                                                 .currency("INR")
                                                 .features("Ad-free music, Offline listening, High quality audio")
                                                 .maxDevices(1)

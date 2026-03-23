@@ -93,6 +93,120 @@ public class PriceScraperService {
         }
     }
 
+    // ============================================
+    // FALLBACK PRICING DATA (accurate as of March 2026)
+    // Used when scraping fails or returns invalid data
+    // ============================================
+    private static final Map<String, List<ScrapedPlan>> FALLBACK_PLANS = new HashMap<>();
+
+    static {
+        // Netflix India Plans
+        List<ScrapedPlan> netflixPlans = new ArrayList<>();
+        ScrapedPlan nMobile = new ScrapedPlan("Mobile");
+        nMobile.priceMonthly = 149.0; nMobile.priceYearly = 1788.0;
+        nMobile.videoQuality = "480p (SD)"; nMobile.maxScreens = 1; nMobile.hasAds = false;
+        nMobile.deviceTypes = "Mobile/Tablet";
+        netflixPlans.add(nMobile);
+
+        ScrapedPlan nBasic = new ScrapedPlan("Basic");
+        nBasic.priceMonthly = 199.0; nBasic.priceYearly = 2388.0;
+        nBasic.videoQuality = "720p (HD)"; nBasic.maxScreens = 1; nBasic.hasAds = false;
+        nBasic.deviceTypes = "All Devices";
+        netflixPlans.add(nBasic);
+
+        ScrapedPlan nStandard = new ScrapedPlan("Standard");
+        nStandard.priceMonthly = 499.0; nStandard.priceYearly = 5988.0;
+        nStandard.videoQuality = "1080p (Full HD)"; nStandard.maxScreens = 2; nStandard.hasAds = false;
+        nStandard.deviceTypes = "All Devices";
+        netflixPlans.add(nStandard);
+
+        ScrapedPlan nPremium = new ScrapedPlan("Premium");
+        nPremium.priceMonthly = 649.0; nPremium.priceYearly = 7788.0;
+        nPremium.videoQuality = "4K (Ultra HD) + HDR"; nPremium.maxScreens = 4; nPremium.hasAds = false;
+        nPremium.deviceTypes = "All Devices";
+        nPremium.extraFeatures = "Spatial Audio";
+        netflixPlans.add(nPremium);
+
+        FALLBACK_PLANS.put("Netflix", netflixPlans);
+
+        // Spotify India Plans
+        List<ScrapedPlan> spotifyPlans = new ArrayList<>();
+        ScrapedPlan sLite = new ScrapedPlan("Premium Lite");
+        sLite.priceMonthly = 139.0; sLite.priceYearly = 1668.0;
+        sLite.videoQuality = "High (~160kbps)"; sLite.maxScreens = 1; sLite.hasAds = false;
+        sLite.deviceTypes = "All Devices";
+        spotifyPlans.add(sLite);
+
+        ScrapedPlan sStandard = new ScrapedPlan("Premium Standard");
+        sStandard.priceMonthly = 199.0; sStandard.priceYearly = 2388.0;
+        sStandard.videoQuality = "Very High (~320kbps)"; sStandard.maxScreens = 1; sStandard.hasAds = false;
+        sStandard.deviceTypes = "All Devices";
+        spotifyPlans.add(sStandard);
+
+        ScrapedPlan sPlatinum = new ScrapedPlan("Premium Platinum");
+        sPlatinum.priceMonthly = 299.0; sPlatinum.priceYearly = 3588.0;
+        sPlatinum.videoQuality = "Lossless (24-bit)"; sPlatinum.maxScreens = 3; sPlatinum.hasAds = false;
+        sPlatinum.deviceTypes = "All Devices";
+        sPlatinum.extraFeatures = "AI DJ, AI Playlists, DJ Software";
+        spotifyPlans.add(sPlatinum);
+
+        ScrapedPlan sStudent = new ScrapedPlan("Premium Student");
+        sStudent.priceMonthly = 99.0; sStudent.priceYearly = 1188.0;
+        sStudent.videoQuality = "Very High (~320kbps)"; sStudent.maxScreens = 1; sStudent.hasAds = false;
+        sStudent.deviceTypes = "All Devices";
+        spotifyPlans.add(sStudent);
+
+        FALLBACK_PLANS.put("Spotify", spotifyPlans);
+
+        // JioHotstar India Plans
+        List<ScrapedPlan> jioPlans = new ArrayList<>();
+        ScrapedPlan jMobile = new ScrapedPlan("Mobile");
+        jMobile.priceMonthly = 79.0; jMobile.priceYearly = 499.0;
+        jMobile.videoQuality = "720p (HD)"; jMobile.maxScreens = 1; jMobile.hasAds = true;
+        jMobile.deviceTypes = "Mobile";
+        jioPlans.add(jMobile);
+
+        ScrapedPlan jSuper = new ScrapedPlan("Super");
+        jSuper.priceMonthly = 149.0; jSuper.priceYearly = 1099.0;
+        jSuper.videoQuality = "1080p (Full HD)"; jSuper.maxScreens = 2; jSuper.hasAds = true;
+        jSuper.deviceTypes = "All Devices";
+        jSuper.extraFeatures = "Hollywood content included";
+        jioPlans.add(jSuper);
+
+        ScrapedPlan jPremium = new ScrapedPlan("Premium");
+        jPremium.priceMonthly = 299.0; jPremium.priceYearly = 2199.0;
+        jPremium.videoQuality = "4K (Ultra HD)"; jPremium.maxScreens = 4; jPremium.hasAds = false;
+        jPremium.deviceTypes = "All Devices";
+        jPremium.extraFeatures = "Ad-free, Hollywood content";
+        jioPlans.add(jPremium);
+
+        FALLBACK_PLANS.put("JioHotstar", jioPlans);
+
+        // Amazon Prime India
+        List<ScrapedPlan> amazonPlans = new ArrayList<>();
+        ScrapedPlan aMobile = new ScrapedPlan("Mobile Edition");
+        aMobile.priceMonthly = 149.0; aMobile.priceYearly = 599.0;
+        aMobile.videoQuality = "480p (SD)"; aMobile.maxScreens = 1; aMobile.hasAds = true;
+        aMobile.deviceTypes = "Mobile";
+        amazonPlans.add(aMobile);
+
+        ScrapedPlan aLite = new ScrapedPlan("Prime Lite");
+        aLite.priceMonthly = 299.0; aLite.priceYearly = 999.0;
+        aLite.videoQuality = "1080p (Full HD)"; aLite.maxScreens = 2; aLite.hasAds = true;
+        aLite.deviceTypes = "All Devices";
+        aLite.extraFeatures = "Free Delivery, Prime Video";
+        amazonPlans.add(aLite);
+
+        ScrapedPlan aPrime = new ScrapedPlan("Prime");
+        aPrime.priceMonthly = 299.0; aPrime.priceYearly = 1499.0;
+        aPrime.videoQuality = "4K (Ultra HD)"; aPrime.maxScreens = 3; aPrime.hasAds = false;
+        aPrime.deviceTypes = "All Devices";
+        aPrime.extraFeatures = "Free Delivery, Prime Video, Prime Music, Prime Reading";
+        amazonPlans.add(aPrime);
+
+        FALLBACK_PLANS.put("Amazon Prime", amazonPlans);
+    }
+
     // Scrape all subscription prices (can be called manually)
     @Transactional
     public void scrapeAllPrices() {
@@ -125,6 +239,8 @@ public class PriceScraperService {
                 scrapeSubscriptionPrice(subscription);
             } catch (Exception e) {
                 logger.error("Error scraping price for {}: {}", subscription.getName(), e.getMessage(), e);
+                // Use fallback on any error
+                useFallbackPlans(subscription);
             }
         }
 
@@ -133,13 +249,15 @@ public class PriceScraperService {
 
     /**
      * Scrape price for a specific subscription with retry logic.
+     * Falls back to hardcoded prices if scraping fails or returns bad data.
      */
     @Transactional
     public void scrapeSubscriptionPrice(Subscription subscription) {
         String url = SUBSCRIPTION_URLS.get(subscription.getName());
 
         if (url == null) {
-            logger.warn("No URL configured for subscription: {}", subscription.getName());
+            logger.warn("No URL configured for subscription: {}. Using fallback.", subscription.getName());
+            useFallbackPlans(subscription);
             return;
         }
 
@@ -149,16 +267,39 @@ public class PriceScraperService {
         Document doc = fetchDocumentWithRetry(url, subscription.getName());
 
         if (doc == null) {
-            logger.error("Failed to fetch document for {} after all retries", subscription.getName());
+            logger.warn("Failed to fetch document for {}. Using fallback prices.", subscription.getName());
+            useFallbackPlans(subscription);
             return;
         }
 
         try {
             // Extract all plans based on subscription name
             List<ScrapedPlan> scrapedPlans = extractPlans(doc, subscription.getName());
+            if (scrapedPlans == null) {
+                scrapedPlans = new ArrayList<>();
+            }
 
-            if (scrapedPlans != null && !scrapedPlans.isEmpty()) {
-                logger.info("Found {} plans for {}", scrapedPlans.size(), subscription.getName());
+            // Validate scraped plans — check for empty or zero-price plans
+            boolean hasValidPlans = !scrapedPlans.isEmpty()
+                    && scrapedPlans.stream().anyMatch(p -> p.priceMonthly != null && p.priceMonthly > 0);
+
+            // Check for "all same price" anomaly (indicates scraper bug)
+            if (hasValidPlans && scrapedPlans.size() > 1) {
+                long distinctPrices = scrapedPlans.stream()
+                        .map(p -> p.priceMonthly)
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .count();
+                if (distinctPrices <= 1) {
+                    logger.warn("All {} plans for {} have the same price (₹{}). Likely a scraper bug. Using fallback.",
+                            scrapedPlans.size(), subscription.getName(),
+                            scrapedPlans.get(0).priceMonthly);
+                    hasValidPlans = false;
+                }
+            }
+
+            if (hasValidPlans) {
+                logger.info("Found {} valid plans for {}", scrapedPlans.size(), subscription.getName());
 
                 // Process each scraped plan
                 for (ScrapedPlan scrapedPlan : scrapedPlans) {
@@ -169,6 +310,7 @@ public class PriceScraperService {
                 Double cheapestPrice = scrapedPlans.stream()
                         .map(p -> p.priceMonthly)
                         .filter(Objects::nonNull)
+                        .filter(p -> p > 0)
                         .min(Double::compareTo)
                         .orElse(null);
 
@@ -176,10 +318,8 @@ public class PriceScraperService {
                     Double oldPrice = subscription.getPriceMonthly();
 
                     if (oldPrice != null && !oldPrice.equals(cheapestPrice)) {
-                        // Price has changed - save to history
                         savePriceHistory(subscription, oldPrice, subscription.getPriceYearly());
 
-                        // Check if price dropped and notify watchlist users
                         if (cheapestPrice < oldPrice) {
                             notifyPriceDrop(subscription, oldPrice, cheapestPrice);
                         }
@@ -193,12 +333,71 @@ public class PriceScraperService {
 
                 logger.info("Successfully updated {} with {} plans", subscription.getName(), scrapedPlans.size());
             } else {
-                logger.warn("No plans found for {}", subscription.getName());
+                logger.warn("Scraping returned invalid/empty plans for {}. Using fallback prices.",
+                        subscription.getName());
+                useFallbackPlans(subscription);
             }
 
         } catch (Exception e) {
-            logger.error("Error processing scraped data for {}: {}", subscription.getName(), e.getMessage(), e);
+            logger.error("Error processing scraped data for {}: {}. Using fallback.",
+                    subscription.getName(), e.getMessage(), e);
+            useFallbackPlans(subscription);
         }
+    }
+
+    /**
+     * Use hardcoded fallback plans for a subscription.
+     * Also cleans up stale/invalid plans from previous failed scrapes.
+     */
+    @Transactional
+    protected void useFallbackPlans(Subscription subscription) {
+        List<ScrapedPlan> fallback = FALLBACK_PLANS.get(subscription.getName());
+
+        if (fallback == null || fallback.isEmpty()) {
+            logger.warn("No fallback plans available for: {}", subscription.getName());
+            return;
+        }
+
+        // Collect valid plan names from fallback
+        Set<String> validPlanNames = new HashSet<>();
+        for (ScrapedPlan fp : fallback) {
+            validPlanNames.add(fp.planName);
+        }
+
+        // Remove stale plans that have zero/null prices and don't match fallback names
+        List<SubscriptionPlan> existingPlans = subscriptionPlanRepository.findBySubscriptionIdOrderByPriceMonthlyAsc(subscription.getId());
+        for (SubscriptionPlan existing : existingPlans) {
+            boolean isStale = (existing.getPriceMonthly() == null || existing.getPriceMonthly() <= 0)
+                    && !validPlanNames.contains(existing.getPlanName());
+            if (isStale) {
+                logger.info("Removing stale plan '{}' (₹{}) for {}",
+                        existing.getPlanName(), existing.getPriceMonthly(), subscription.getName());
+                subscriptionPlanRepository.delete(existing);
+            }
+        }
+
+        logger.info("Applying {} fallback plans for {}", fallback.size(), subscription.getName());
+
+        for (ScrapedPlan plan : fallback) {
+            processScrapedPlan(subscription, plan);
+        }
+
+        // Update base price to cheapest fallback
+        Double cheapestPrice = fallback.stream()
+                .map(p -> p.priceMonthly)
+                .filter(Objects::nonNull)
+                .filter(p -> p > 0)
+                .min(Double::compareTo)
+                .orElse(subscription.getPriceMonthly());
+
+        if (cheapestPrice != null) {
+            subscription.setPriceMonthly(cheapestPrice);
+        }
+
+        subscription.setLastScrapedAt(LocalDateTime.now());
+        subscriptionRepository.save(subscription);
+
+        logger.info("Fallback plans applied for {} (base price: ₹{})", subscription.getName(), cheapestPrice);
     }
 
     /**
