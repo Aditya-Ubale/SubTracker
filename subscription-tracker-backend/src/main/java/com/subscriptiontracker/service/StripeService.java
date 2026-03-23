@@ -1,19 +1,13 @@
 package com.subscriptiontracker.service;
 
-import com.stripe.Stripe;
-import com.stripe.exception.StripeException;
-import com.stripe.model.checkout.Session;
-import com.stripe.param.checkout.SessionCreateParams;
 import com.subscriptiontracker.dto.PaymentResponse;
 import com.subscriptiontracker.entity.*;
 import com.subscriptiontracker.exception.BadRequestException;
 import com.subscriptiontracker.exception.ResourceNotFoundException;
 import com.subscriptiontracker.repository.*;
-import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,16 +17,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Payment Service - Simulated Payment Gateway
+ * 
+ * Provides a fully functional simulated payment flow.
+ * No external payment provider required.
+ * All existing API endpoints (/api/stripe/*) remain unchanged.
+ */
 @Service
 public class StripeService {
 
     private static final Logger logger = LoggerFactory.getLogger(StripeService.class);
-
-    @Value("${stripe.secret.key:sk_test_placeholder}")
-    private String stripeSecretKey;
-
-    @Value("${app.frontend.url:http://localhost:5173}")
-    private String frontendUrl;
 
     @Autowired
     private AuthService authService;
@@ -52,25 +47,9 @@ public class StripeService {
     @Autowired
     private WatchlistRepository watchlistRepository;
 
-    private boolean simulationMode = false;
-
-    @PostConstruct
-    public void init() {
-        // Detect if Stripe key is a placeholder or missing
-        if (stripeSecretKey == null || stripeSecretKey.isBlank()
-                || stripeSecretKey.equals("sk_test_placeholder")
-                || stripeSecretKey.equals("sk_test_your_secret_key")
-                || !stripeSecretKey.startsWith("sk_")) {
-            simulationMode = true;
-            logger.info("Stripe API key not configured. Running in SIMULATION mode.");
-        } else {
-            Stripe.apiKey = stripeSecretKey;
-            logger.info("Stripe API key configured. Running in LIVE mode.");
-        }
-    }
-
     /**
-     * Create a Checkout Session (Stripe or Simulated)
+     * Create a simulated checkout session.
+     * Returns a session ID that the frontend uses to complete payment.
      */
     @Transactional
     public Map<String, Object> createCheckoutSession(Long subscriptionId, Long planId, String subscriptionType) {
@@ -99,96 +78,16 @@ public class StripeService {
             }
         }
 
-        // If amount is 0, throw error (should use add-free endpoint instead)
         if (amount <= 0) {
             throw new BadRequestException("Amount must be greater than 0. Use free subscription endpoint.");
         }
 
-        // Use simulation mode if Stripe key not configured
-        if (simulationMode) {
-            return createSimulatedSession(user, subscription, planId, planName, amount, subscriptionType);
-        }
+        // Generate simulated session ID
+        String sessionId = "sim_" + UUID.randomUUID().toString().replace("-", "");
 
-        // Stripe requires minimum amount of ~50 cents USD (approximately ₹42-45)
-        final double MINIMUM_STRIPE_AMOUNT = 50.0;
-        Double originalAmount = amount;
-        if (amount < MINIMUM_STRIPE_AMOUNT) {
-            amount = MINIMUM_STRIPE_AMOUNT;
-            logger.info("Adjusted amount from ₹{} to ₹{} (Stripe minimum)", originalAmount, amount);
-        }
-
-        try {
-            long amountInSmallestUnit = Math.round(amount * 100);
-
-            SessionCreateParams params = SessionCreateParams.builder()
-                    .setMode(SessionCreateParams.Mode.PAYMENT)
-                    .setSuccessUrl(frontendUrl + "/payment/success?session_id={CHECKOUT_SESSION_ID}")
-                    .setCancelUrl(frontendUrl + "/payment/cancel")
-                    .setCustomerEmail(user.getEmail())
-                    .addLineItem(
-                            SessionCreateParams.LineItem.builder()
-                                    .setQuantity(1L)
-                                    .setPriceData(
-                                            SessionCreateParams.LineItem.PriceData.builder()
-                                                    .setCurrency("inr")
-                                                    .setUnitAmount(amountInSmallestUnit)
-                                                    .setProductData(
-                                                            SessionCreateParams.LineItem.PriceData.ProductData.builder()
-                                                                    .setName(subscription.getName()
-                                                                            + (planName != null ? " - " + planName
-                                                                                    : ""))
-                                                                    .setDescription(subscriptionType + " Subscription")
-                                                                    .build())
-                                                    .build())
-                                    .build())
-                    .putMetadata("subscription_id", subscriptionId.toString())
-                    .putMetadata("plan_id", planId != null ? planId.toString() : "")
-                    .putMetadata("subscription_type", subscriptionType)
-                    .putMetadata("user_id", user.getId().toString())
-                    .build();
-
-            Session session = Session.create(params);
-
-            Payment payment = Payment.builder()
-                    .transactionId(session.getId())
-                    .user(user)
-                    .subscription(subscription)
-                    .planId(planId)
-                    .amount(amount)
-                    .currency("INR")
-                    .status(Payment.PaymentStatus.PENDING)
-                    .paymentMethod("STRIPE")
-                    .subscriptionType(subscriptionType)
-                    .build();
-
-            paymentRepository.save(payment);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("sessionId", session.getId());
-            response.put("url", session.getUrl());
-            response.put("subscriptionName", subscription.getName());
-            response.put("subscriptionLogo", subscription.getLogoUrl());
-            response.put("planName", planName);
-            response.put("amount", amount);
-            response.put("simulated", false);
-
-            return response;
-
-        } catch (StripeException e) {
-            throw new BadRequestException("Failed to create Stripe checkout session: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Create a simulated checkout session (no Stripe dependency)
-     */
-    private Map<String, Object> createSimulatedSession(User user, Subscription subscription,
-            Long planId, String planName, Double amount, String subscriptionType) {
-
-        String simulatedSessionId = "sim_" + UUID.randomUUID().toString().replace("-", "");
-
+        // Save payment record
         Payment payment = Payment.builder()
-                .transactionId(simulatedSessionId)
+                .transactionId(sessionId)
                 .user(user)
                 .subscription(subscription)
                 .planId(planId)
@@ -201,11 +100,12 @@ public class StripeService {
 
         paymentRepository.save(payment);
 
-        logger.info("Created simulated payment session: {} for user: {}, amount: ₹{}",
-                simulatedSessionId, user.getEmail(), amount);
+        logger.info("Created simulated payment session: {} for user: {}, subscription: {}, amount: ₹{}",
+                sessionId, user.getEmail(), subscription.getName(), amount);
 
+        // Return session details
         Map<String, Object> response = new HashMap<>();
-        response.put("sessionId", simulatedSessionId);
+        response.put("sessionId", sessionId);
         response.put("url", null);
         response.put("subscriptionName", subscription.getName());
         response.put("subscriptionLogo", subscription.getLogoUrl());
@@ -217,7 +117,7 @@ public class StripeService {
     }
 
     /**
-     * Verify payment (Stripe or Simulated)
+     * Verify payment — auto-approves simulated payments.
      */
     @Transactional
     public PaymentResponse verifyPayment(String sessionId) {
@@ -230,58 +130,31 @@ public class StripeService {
             throw new BadRequestException("Unauthorized access to payment");
         }
 
-        // If already processed, return current status
+        // Already processed
         if (payment.getStatus() == Payment.PaymentStatus.SUCCESS) {
             return buildPaymentResponse(payment, "Payment already completed");
         }
 
-        // Simulated payment — auto-approve
-        if (sessionId.startsWith("sim_")) {
-            payment.setStatus(Payment.PaymentStatus.SUCCESS);
-            payment.setCompletedAt(LocalDateTime.now());
-            payment.setFailureReason(null);
-            paymentRepository.save(payment);
+        // Auto-approve
+        payment.setStatus(Payment.PaymentStatus.SUCCESS);
+        payment.setCompletedAt(LocalDateTime.now());
+        payment.setFailureReason(null);
+        paymentRepository.save(payment);
 
-            addSubscriptionToUser(payment);
-            removeFromWishlist(payment.getUser().getId(), payment.getSubscription().getId());
+        // Add subscription to user
+        addSubscriptionToUser(payment);
 
-            logger.info("Simulated payment verified: {}", sessionId);
-            return buildPaymentResponse(payment, "Payment verified successfully (simulated)");
-        }
+        // Remove from wishlist
+        removeFromWishlist(payment.getUser().getId(), payment.getSubscription().getId());
 
-        // Real Stripe verification
-        try {
-            Session session = Session.retrieve(sessionId);
+        logger.info("Payment verified and subscription activated: {} for user: {}",
+                sessionId, payment.getUser().getEmail());
 
-            if ("complete".equals(session.getStatus()) && "paid".equals(session.getPaymentStatus())) {
-                payment.setStatus(Payment.PaymentStatus.SUCCESS);
-                payment.setCompletedAt(LocalDateTime.now());
-                payment.setFailureReason(null);
-                paymentRepository.save(payment);
-
-                addSubscriptionToUser(payment);
-                removeFromWishlist(payment.getUser().getId(), payment.getSubscription().getId());
-
-                return buildPaymentResponse(payment, "Payment verified successfully");
-            } else {
-                payment.setStatus(Payment.PaymentStatus.FAILED);
-                payment.setFailureReason("Payment not completed. Status: " + session.getPaymentStatus());
-                paymentRepository.save(payment);
-
-                return buildPaymentResponse(payment, "Payment verification failed");
-            }
-
-        } catch (StripeException e) {
-            payment.setStatus(Payment.PaymentStatus.FAILED);
-            payment.setFailureReason("Verification error: " + e.getMessage());
-            paymentRepository.save(payment);
-
-            return buildPaymentResponse(payment, "Payment verification error");
-        }
+        return buildPaymentResponse(payment, "Payment verified successfully");
     }
 
     /**
-     * Handle payment cancellation
+     * Handle payment cancellation.
      */
     @Transactional
     public PaymentResponse handlePaymentCancel(String sessionId) {
@@ -309,6 +182,7 @@ public class StripeService {
         User user = payment.getUser();
         Subscription subscription = payment.getSubscription();
 
+        // Deactivate existing subscription if present
         if (userSubscriptionRepository.existsByUserIdAndSubscriptionIdAndIsActiveTrue(
                 user.getId(), subscription.getId())) {
             UserSubscription existing = userSubscriptionRepository
@@ -334,7 +208,7 @@ public class StripeService {
                 .isActive(true)
                 .autoRenew(true)
                 .reminderDaysBefore(7)
-                .notes("Purchased via " + payment.getPaymentMethod() + " - Session: " + payment.getTransactionId())
+                .notes("Purchased via Simulated Payment - Session: " + payment.getTransactionId())
                 .build();
 
         userSubscriptionRepository.save(userSubscription);
