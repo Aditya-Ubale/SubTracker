@@ -10,6 +10,8 @@ import com.subscriptiontracker.exception.BadRequestException;
 import com.subscriptiontracker.exception.ResourceNotFoundException;
 import com.subscriptiontracker.repository.*;
 import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -19,11 +21,14 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class StripeService {
 
-    @Value("${stripe.secret.key:sk_test_your_secret_key}")
+    private static final Logger logger = LoggerFactory.getLogger(StripeService.class);
+
+    @Value("${stripe.secret.key:sk_test_placeholder}")
     private String stripeSecretKey;
 
     @Value("${app.frontend.url:http://localhost:5173}")
@@ -47,13 +52,25 @@ public class StripeService {
     @Autowired
     private WatchlistRepository watchlistRepository;
 
+    private boolean simulationMode = false;
+
     @PostConstruct
     public void init() {
-        Stripe.apiKey = stripeSecretKey;
+        // Detect if Stripe key is a placeholder or missing
+        if (stripeSecretKey == null || stripeSecretKey.isBlank()
+                || stripeSecretKey.equals("sk_test_placeholder")
+                || stripeSecretKey.equals("sk_test_your_secret_key")
+                || !stripeSecretKey.startsWith("sk_")) {
+            simulationMode = true;
+            logger.info("Stripe API key not configured. Running in SIMULATION mode.");
+        } else {
+            Stripe.apiKey = stripeSecretKey;
+            logger.info("Stripe API key configured. Running in LIVE mode.");
+        }
     }
 
     /**
-     * Create a Stripe Checkout Session for payment
+     * Create a Checkout Session (Stripe or Simulated)
      */
     @Transactional
     public Map<String, Object> createCheckoutSession(Long subscriptionId, Long planId, String subscriptionType) {
@@ -87,23 +104,22 @@ public class StripeService {
             throw new BadRequestException("Amount must be greater than 0. Use free subscription endpoint.");
         }
 
+        // Use simulation mode if Stripe key not configured
+        if (simulationMode) {
+            return createSimulatedSession(user, subscription, planId, planName, amount, subscriptionType);
+        }
+
         // Stripe requires minimum amount of ~50 cents USD (approximately ₹42-45)
-        // For test mode: automatically adjust small amounts to minimum
         final double MINIMUM_STRIPE_AMOUNT = 50.0;
         Double originalAmount = amount;
         if (amount < MINIMUM_STRIPE_AMOUNT) {
             amount = MINIMUM_STRIPE_AMOUNT;
-            System.out.println("Adjusted amount from ₹" + originalAmount + " to ₹" + amount + " (Stripe minimum)");
+            logger.info("Adjusted amount from ₹{} to ₹{} (Stripe minimum)", originalAmount, amount);
         }
 
         try {
-            // Stripe expects amount in smallest currency unit (paise for INR, cents for
-            // USD)
             long amountInSmallestUnit = Math.round(amount * 100);
 
-            // Create Stripe Checkout Session
-            // Stripe automatically enables relevant payment methods (card, UPI, etc.) based
-            // on currency
             SessionCreateParams params = SessionCreateParams.builder()
                     .setMode(SessionCreateParams.Mode.PAYMENT)
                     .setSuccessUrl(frontendUrl + "/payment/success?session_id={CHECKOUT_SESSION_ID}")
@@ -133,7 +149,6 @@ public class StripeService {
 
             Session session = Session.create(params);
 
-            // Save payment record with PENDING status
             Payment payment = Payment.builder()
                     .transactionId(session.getId())
                     .user(user)
@@ -148,7 +163,6 @@ public class StripeService {
 
             paymentRepository.save(payment);
 
-            // Return session details for frontend
             Map<String, Object> response = new HashMap<>();
             response.put("sessionId", session.getId());
             response.put("url", session.getUrl());
@@ -156,6 +170,7 @@ public class StripeService {
             response.put("subscriptionLogo", subscription.getLogoUrl());
             response.put("planName", planName);
             response.put("amount", amount);
+            response.put("simulated", false);
 
             return response;
 
@@ -165,7 +180,44 @@ public class StripeService {
     }
 
     /**
-     * Verify Stripe payment after successful checkout
+     * Create a simulated checkout session (no Stripe dependency)
+     */
+    private Map<String, Object> createSimulatedSession(User user, Subscription subscription,
+            Long planId, String planName, Double amount, String subscriptionType) {
+
+        String simulatedSessionId = "sim_" + UUID.randomUUID().toString().replace("-", "");
+
+        Payment payment = Payment.builder()
+                .transactionId(simulatedSessionId)
+                .user(user)
+                .subscription(subscription)
+                .planId(planId)
+                .amount(amount)
+                .currency("INR")
+                .status(Payment.PaymentStatus.PENDING)
+                .paymentMethod("SIMULATED")
+                .subscriptionType(subscriptionType)
+                .build();
+
+        paymentRepository.save(payment);
+
+        logger.info("Created simulated payment session: {} for user: {}, amount: ₹{}",
+                simulatedSessionId, user.getEmail(), amount);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("sessionId", simulatedSessionId);
+        response.put("url", null);
+        response.put("subscriptionName", subscription.getName());
+        response.put("subscriptionLogo", subscription.getLogoUrl());
+        response.put("planName", planName);
+        response.put("amount", amount);
+        response.put("simulated", true);
+
+        return response;
+    }
+
+    /**
+     * Verify payment (Stripe or Simulated)
      */
     @Transactional
     public PaymentResponse verifyPayment(String sessionId) {
@@ -183,26 +235,35 @@ public class StripeService {
             return buildPaymentResponse(payment, "Payment already completed");
         }
 
+        // Simulated payment — auto-approve
+        if (sessionId.startsWith("sim_")) {
+            payment.setStatus(Payment.PaymentStatus.SUCCESS);
+            payment.setCompletedAt(LocalDateTime.now());
+            payment.setFailureReason(null);
+            paymentRepository.save(payment);
+
+            addSubscriptionToUser(payment);
+            removeFromWishlist(payment.getUser().getId(), payment.getSubscription().getId());
+
+            logger.info("Simulated payment verified: {}", sessionId);
+            return buildPaymentResponse(payment, "Payment verified successfully (simulated)");
+        }
+
+        // Real Stripe verification
         try {
-            // Retrieve the session from Stripe to verify payment
             Session session = Session.retrieve(sessionId);
 
             if ("complete".equals(session.getStatus()) && "paid".equals(session.getPaymentStatus())) {
-                // Payment successful
                 payment.setStatus(Payment.PaymentStatus.SUCCESS);
                 payment.setCompletedAt(LocalDateTime.now());
                 payment.setFailureReason(null);
                 paymentRepository.save(payment);
 
-                // Add subscription to user
                 addSubscriptionToUser(payment);
-
-                // Remove from wishlist
                 removeFromWishlist(payment.getUser().getId(), payment.getSubscription().getId());
 
                 return buildPaymentResponse(payment, "Payment verified successfully");
             } else {
-                // Payment not complete
                 payment.setStatus(Payment.PaymentStatus.FAILED);
                 payment.setFailureReason("Payment not completed. Status: " + session.getPaymentStatus());
                 paymentRepository.save(payment);
@@ -248,10 +309,8 @@ public class StripeService {
         User user = payment.getUser();
         Subscription subscription = payment.getSubscription();
 
-        // Check if user already has this subscription (active)
         if (userSubscriptionRepository.existsByUserIdAndSubscriptionIdAndIsActiveTrue(
                 user.getId(), subscription.getId())) {
-            // Deactivate existing subscription
             UserSubscription existing = userSubscriptionRepository
                     .findByUserIdAndSubscriptionId(user.getId(), subscription.getId());
             if (existing != null) {
@@ -275,7 +334,7 @@ public class StripeService {
                 .isActive(true)
                 .autoRenew(true)
                 .reminderDaysBefore(7)
-                .notes("Purchased via Stripe - Session: " + payment.getTransactionId())
+                .notes("Purchased via " + payment.getPaymentMethod() + " - Session: " + payment.getTransactionId())
                 .build();
 
         userSubscriptionRepository.save(userSubscription);
@@ -286,7 +345,7 @@ public class StripeService {
             watchlistRepository.findByUserIdAndSubscriptionId(userId, subscriptionId)
                     .ifPresent(watchlistRepository::delete);
         } catch (Exception e) {
-            System.err.println("Failed to remove from wishlist: " + e.getMessage());
+            logger.warn("Failed to remove from wishlist: {}", e.getMessage());
         }
     }
 

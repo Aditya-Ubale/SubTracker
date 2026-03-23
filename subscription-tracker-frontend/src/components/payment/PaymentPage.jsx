@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Box,
@@ -12,6 +12,9 @@ import {
     CircularProgress,
     Divider,
     Alert,
+    LinearProgress,
+    TextField,
+    InputAdornment,
 } from '@mui/material';
 import {
     CreditCard,
@@ -22,6 +25,7 @@ import {
     Lock,
     Payment as PaymentIcon,
     AccountBalance,
+    Verified,
 } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import { stripeAPI, paymentAPI, subscriptionAPI } from '../../services/api';
@@ -42,6 +46,14 @@ const PaymentPage = () => {
     const [paymentStatus, setPaymentStatus] = useState(null);
     const [transactionId, setTransactionId] = useState(null);
 
+    // Simulation state
+    const [simMode, setSimMode] = useState(false);
+    const [simSessionId, setSimSessionId] = useState(null);
+    const [simStep, setSimStep] = useState(null); // 'checkout', 'processing', 'verifying'
+    const [simProgress, setSimProgress] = useState(0);
+    const [selectedMethod, setSelectedMethod] = useState('card');
+    const simTimerRef = useRef(null);
+
     const price = priceParam ? parseFloat(priceParam) : 0;
 
     useEffect(() => {
@@ -51,13 +63,16 @@ const PaymentPage = () => {
             return;
         }
 
-        // If price is 0, directly add subscription
         if (price === 0) {
             handleFreeSubscription();
             return;
         }
 
         fetchSubscriptionDetails();
+
+        return () => {
+            if (simTimerRef.current) clearInterval(simTimerRef.current);
+        };
     }, [subscriptionId]);
 
     const fetchSubscriptionDetails = async () => {
@@ -99,7 +114,6 @@ const PaymentPage = () => {
         try {
             setProcessing(true);
 
-            // Create Stripe Checkout Session
             const sessionResponse = await stripeAPI.createCheckoutSession({
                 subscriptionId: parseInt(subscriptionId),
                 planId: planId ? parseInt(planId) : null,
@@ -112,14 +126,44 @@ const PaymentPage = () => {
 
             const sessionData = sessionResponse.data.data;
 
-            // Redirect to Stripe Checkout
+            // Check if backend returned simulation mode
+            if (sessionData.simulated) {
+                setSimMode(true);
+                setSimSessionId(sessionData.sessionId);
+                setSimStep('checkout');
+                setProcessing(false);
+                return;
+            }
+
+            // Real Stripe — redirect
             window.location.href = sessionData.url;
 
         } catch (error) {
-            console.error('Stripe payment error:', error);
+            console.error('Payment error:', error);
             setProcessing(false);
             toast.error(error.response?.data?.message || error.message || 'Failed to initiate payment');
         }
+    };
+
+    const handleSimulatedPayment = () => {
+        setSimStep('processing');
+        setSimProgress(0);
+
+        let progress = 0;
+        simTimerRef.current = setInterval(() => {
+            progress += Math.random() * 15 + 5;
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(simTimerRef.current);
+                setSimProgress(100);
+
+                setTimeout(() => {
+                    // Navigate to success page with simulated session_id
+                    navigate(`/payment/success?session_id=${simSessionId}`);
+                }, 600);
+            }
+            setSimProgress(Math.min(progress, 100));
+        }, 300);
     };
 
     if (loading) {
@@ -130,7 +174,7 @@ const PaymentPage = () => {
         );
     }
 
-    // Success/Failed Status
+    // Success/Failed Status (for free subscriptions)
     if (paymentStatus) {
         return (
             <Box sx={{ maxWidth: 500, mx: 'auto', mt: 4 }}>
@@ -189,6 +233,229 @@ const PaymentPage = () => {
         );
     }
 
+    // Simulated Checkout UI
+    if (simMode && simStep) {
+        return (
+            <Box sx={{ maxWidth: 520, mx: 'auto', mt: 4 }}>
+                <Card sx={{
+                    borderRadius: 3,
+                    overflow: 'hidden',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                }}>
+                    {/* Header */}
+                    <Box sx={{
+                        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+                        px: 3, py: 2.5,
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Lock sx={{ fontSize: 18, color: '#4CAF50' }} />
+                            <Typography sx={{ fontWeight: 600, color: '#fff', fontSize: '0.95rem' }}>
+                                Secure Checkout
+                            </Typography>
+                        </Box>
+                        <Chip
+                            label="DEMO"
+                            size="small"
+                            sx={{
+                                bgcolor: 'rgba(255, 152, 0, 0.15)',
+                                color: '#FFB74D',
+                                fontWeight: 700,
+                                fontSize: '0.65rem',
+                                height: 22,
+                            }}
+                        />
+                    </Box>
+
+                    <CardContent sx={{ p: 3 }}>
+                        {simStep === 'checkout' && (
+                            <>
+                                {/* Subscription info */}
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                                    {subscription && (
+                                        <Avatar
+                                            src={subscription.logoUrl}
+                                            sx={{ width: 48, height: 48, border: '1px solid rgba(255,255,255,0.1)' }}
+                                        />
+                                    )}
+                                    <Box>
+                                        <Typography sx={{ fontWeight: 600, color: '#fff' }}>
+                                            {subscription?.name || 'Subscription'}
+                                        </Typography>
+                                        <Typography sx={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.5)' }}>
+                                            {subscriptionType} Plan
+                                        </Typography>
+                                    </Box>
+                                    <Typography sx={{ ml: 'auto', fontWeight: 700, color: '#fff', fontSize: '1.25rem' }}>
+                                        {formatCurrency(price)}
+                                    </Typography>
+                                </Box>
+
+                                <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)', mb: 3 }} />
+
+                                {/* Payment method selector */}
+                                <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', mb: 1.5, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                                    Payment Method
+                                </Typography>
+
+                                <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
+                                    {[
+                                        { id: 'card', label: 'Card', icon: <CreditCard sx={{ fontSize: 20 }} /> },
+                                        { id: 'upi', label: 'UPI', icon: <Smartphone sx={{ fontSize: 20 }} /> },
+                                        { id: 'netbanking', label: 'Bank', icon: <AccountBalance sx={{ fontSize: 20 }} /> },
+                                    ].map((method) => (
+                                        <Box
+                                            key={method.id}
+                                            onClick={() => setSelectedMethod(method.id)}
+                                            sx={{
+                                                flex: 1,
+                                                py: 1.5,
+                                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5,
+                                                borderRadius: 2,
+                                                border: `1px solid ${selectedMethod === method.id ? 'rgba(229, 9, 20, 0.5)' : 'rgba(255,255,255,0.08)'}`,
+                                                bgcolor: selectedMethod === method.id ? 'rgba(229, 9, 20, 0.06)' : 'transparent',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s ease',
+                                                color: selectedMethod === method.id ? '#E50914' : 'rgba(255,255,255,0.5)',
+                                                '&:hover': {
+                                                    borderColor: 'rgba(229, 9, 20, 0.3)',
+                                                    bgcolor: 'rgba(229, 9, 20, 0.04)',
+                                                },
+                                            }}
+                                        >
+                                            {method.icon}
+                                            <Typography sx={{ fontSize: '0.7rem', fontWeight: 600 }}>{method.label}</Typography>
+                                        </Box>
+                                    ))}
+                                </Box>
+
+                                {/* Fake form fields */}
+                                {selectedMethod === 'card' && (
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
+                                        <TextField
+                                            fullWidth size="small" label="Card Number"
+                                            value="4242 4242 4242 4242" disabled
+                                            InputProps={{
+                                                startAdornment: <InputAdornment position="start"><CreditCard sx={{ fontSize: 18, color: 'rgba(255,255,255,0.3)' }} /></InputAdornment>,
+                                            }}
+                                            sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.08)' } }, '& .Mui-disabled': { WebkitTextFillColor: 'rgba(255,255,255,0.5)' } }}
+                                        />
+                                        <Box sx={{ display: 'flex', gap: 2 }}>
+                                            <TextField
+                                                size="small" label="Expiry" value="12/34" disabled fullWidth
+                                                sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.08)' } }, '& .Mui-disabled': { WebkitTextFillColor: 'rgba(255,255,255,0.5)' } }}
+                                            />
+                                            <TextField
+                                                size="small" label="CVC" value="123" disabled fullWidth
+                                                sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.08)' } }, '& .Mui-disabled': { WebkitTextFillColor: 'rgba(255,255,255,0.5)' } }}
+                                            />
+                                        </Box>
+                                    </Box>
+                                )}
+
+                                {selectedMethod === 'upi' && (
+                                    <Box sx={{ mb: 3 }}>
+                                        <TextField
+                                            fullWidth size="small" label="UPI ID"
+                                            value="user@upi" disabled
+                                            sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'rgba(255,255,255,0.03)', '& fieldset': { borderColor: 'rgba(255,255,255,0.08)' } }, '& .Mui-disabled': { WebkitTextFillColor: 'rgba(255,255,255,0.5)' } }}
+                                        />
+                                    </Box>
+                                )}
+
+                                {selectedMethod === 'netbanking' && (
+                                    <Box sx={{ mb: 3, textAlign: 'center', py: 2 }}>
+                                        <AccountBalance sx={{ fontSize: 40, color: 'rgba(255,255,255,0.3)', mb: 1 }} />
+                                        <Typography sx={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.5)' }}>
+                                            Demo bank selected
+                                        </Typography>
+                                    </Box>
+                                )}
+
+                                <Alert
+                                    severity="info"
+                                    sx={{
+                                        mb: 3,
+                                        bgcolor: 'rgba(99, 102, 241, 0.06)',
+                                        border: '1px solid rgba(99, 102, 241, 0.12)',
+                                        '& .MuiAlert-icon': { color: 'rgba(99, 102, 241, 0.7)' },
+                                    }}
+                                >
+                                    <Typography sx={{ fontSize: '0.8125rem', color: 'rgba(255,255,255,0.7)' }}>
+                                        <strong>Demo Mode</strong> — This is a simulated payment. No real money will be charged.
+                                    </Typography>
+                                </Alert>
+
+                                {/* Pay Button */}
+                                <Button
+                                    fullWidth variant="contained" size="large"
+                                    onClick={handleSimulatedPayment}
+                                    startIcon={<Lock sx={{ fontSize: 18 }} />}
+                                    sx={{
+                                        py: 1.5,
+                                        bgcolor: '#E50914',
+                                        fontSize: '1rem',
+                                        fontWeight: 700,
+                                        borderRadius: 2,
+                                        textTransform: 'none',
+                                        boxShadow: '0 4px 14px rgba(229, 9, 20, 0.3)',
+                                        '&:hover': { bgcolor: '#B81D24', boxShadow: '0 6px 20px rgba(229, 9, 20, 0.4)' },
+                                    }}
+                                >
+                                    Pay {formatCurrency(price)}
+                                </Button>
+
+                                <Typography sx={{ textAlign: 'center', mt: 1.5, fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)' }}>
+                                    <Lock sx={{ fontSize: 10, verticalAlign: 'middle', mr: 0.5 }} />
+                                    Secured • Encrypted • Demo Mode
+                                </Typography>
+                            </>
+                        )}
+
+                        {simStep === 'processing' && (
+                            <Box sx={{ textAlign: 'center', py: 4 }}>
+                                <CircularProgress
+                                    variant="determinate"
+                                    value={simProgress}
+                                    size={80}
+                                    thickness={3}
+                                    sx={{
+                                        color: simProgress >= 100 ? '#4CAF50' : '#E50914',
+                                        mb: 3,
+                                    }}
+                                />
+                                <Typography sx={{ fontWeight: 600, color: '#fff', mb: 1, fontSize: '1.1rem' }}>
+                                    {simProgress >= 100 ? 'Payment Complete!' : 'Processing Payment...'}
+                                </Typography>
+                                <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8125rem', mb: 3 }}>
+                                    {simProgress < 30 && 'Connecting to payment gateway...'}
+                                    {simProgress >= 30 && simProgress < 60 && 'Verifying payment details...'}
+                                    {simProgress >= 60 && simProgress < 90 && 'Processing transaction...'}
+                                    {simProgress >= 90 && simProgress < 100 && 'Finalizing payment...'}
+                                    {simProgress >= 100 && 'Redirecting to confirmation...'}
+                                </Typography>
+                                <LinearProgress
+                                    variant="determinate"
+                                    value={simProgress}
+                                    sx={{
+                                        height: 4,
+                                        borderRadius: 2,
+                                        bgcolor: 'rgba(255,255,255,0.04)',
+                                        '& .MuiLinearProgress-bar': {
+                                            bgcolor: simProgress >= 100 ? '#4CAF50' : '#E50914',
+                                            borderRadius: 2,
+                                        },
+                                    }}
+                                />
+                            </Box>
+                        )}
+                    </CardContent>
+                </Card>
+            </Box>
+        );
+    }
+
+    // Default payment page (before simulation or for real Stripe)
     return (
         <Box sx={{ maxWidth: 800, mx: 'auto', mt: 2 }}>
             {/* Header */}
@@ -210,29 +477,9 @@ const PaymentPage = () => {
                 <Grid item xs={12} md={7}>
                     <Card sx={{ borderRadius: 3 }}>
                         <CardContent sx={{ p: 3 }}>
-                            {/* Stripe Payment Info */}
                             <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
-                                Secure Payment via Stripe
+                                Secure Payment
                             </Typography>
-
-                            {/* Info for small amounts - they'll be adjusted */}
-                            {price < 50 && (
-                                <Alert severity="info" sx={{ mb: 2 }}>
-                                    <strong>Note:</strong> Stripe requires a minimum of ₹50.
-                                    Your amount (₹{price.toFixed(2)}) will be adjusted to ₹50.
-                                </Alert>
-                            )}
-
-                            <Alert severity="info" sx={{ mb: 3 }}>
-                                <strong>Test Mode Active</strong><br />
-                                Use these test credentials on Stripe checkout:<br /><br />
-                                <strong>Test Card:</strong><br />
-                                • <strong>Card:</strong> 4242 4242 4242 4242<br />
-                                • <strong>Expiry:</strong> Any future date (e.g., 12/34)<br />
-                                • <strong>CVC:</strong> Any 3 digits (e.g., 123)<br /><br />
-                                <strong>Test UPI:</strong><br />
-                                • <strong>UPI ID:</strong> success@stripeupi
-                            </Alert>
 
                             {/* Payment Methods */}
                             <Box sx={{ textAlign: 'center', py: 3 }}>
@@ -267,18 +514,18 @@ const PaymentPage = () => {
                                     sx={{
                                         py: 2,
                                         px: 6,
-                                        bgcolor: '#635BFF',
+                                        bgcolor: '#E50914',
                                         fontSize: '1.1rem',
                                         fontWeight: 600,
-                                        '&:hover': { bgcolor: '#4B45C6' },
+                                        '&:hover': { bgcolor: '#B81D24' },
                                     }}
                                 >
-                                    {processing ? 'Processing...' : `Pay ${formatCurrency(price < 50 ? 50 : price)}`}
+                                    {processing ? 'Processing...' : `Pay ${formatCurrency(price)}`}
                                 </Button>
 
                                 <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 2 }}>
                                     <Lock sx={{ fontSize: 12, verticalAlign: 'middle', mr: 0.5 }} />
-                                    Secured by Stripe
+                                    Secured & Encrypted
                                 </Typography>
                             </Box>
                         </CardContent>
@@ -318,19 +565,13 @@ const PaymentPage = () => {
                                 <Typography color="text.secondary">Price</Typography>
                                 <Typography fontWeight={600}>{formatCurrency(price)}</Typography>
                             </Box>
-                            {price < 50 && (
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                    <Typography color="text.secondary">Adjusted (Min ₹50)</Typography>
-                                    <Typography fontWeight={600} color="warning.main">{formatCurrency(50)}</Typography>
-                                </Box>
-                            )}
 
                             <Divider sx={{ my: 2 }} />
 
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
                                 <Typography variant="h6" fontWeight={700}>Total</Typography>
                                 <Typography variant="h6" fontWeight={700} color="primary">
-                                    {formatCurrency(price < 50 ? 50 : price)}
+                                    {formatCurrency(price)}
                                 </Typography>
                             </Box>
                         </CardContent>
